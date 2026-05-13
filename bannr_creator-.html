@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Bannr — صفحة المنشئ</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
+:root {
+  --red: #FE2C55;
+  --gold: #C9A84C;
+  --black: #0A0A0A;
+  --card: #161616;
+  --text: #F5F0E8;
+  --gray: #888;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Cairo', sans-serif; background: var(--black); color: var(--text); min-height: 100vh; padding-bottom: 80px; }
+
+/* Header */
+.header {
+  position: relative;
+  height: 200px;
+  background: linear-gradient(135deg, #1a0a0f, #0a0a1a);
+  overflow: hidden;
+}
+.header-bg {
+  position: absolute; inset: 0;
+  background: radial-gradient(circle at 30% 50%, rgba(254,44,85,0.2), transparent 60%),
+              radial-gradient(circle at 70% 30%, rgba(201,168,76,0.15), transparent 60%);
+}
+.back-btn {
+  position: absolute; top: 16px; right: 16px;
+  width: 36px; height: 36px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 50%; border: none;
+  color: var(--text); font-size: 18px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.share-btn {
+  position: absolute; top: 16px; left: 16px;
+  width: 36px; height: 36px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 50%; border: none;
+  color: var(--text); font-size: 16px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+
+/* Avatar */
+.avatar-wrap {
+  position: absolute;
+  bottom: -40px; right: 50%;
+  transform: translateX(50%);
+}
+.avatar {
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--red), #ff8c42);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 32px; font-weight: 900;
+  border: 3px solid var(--black);
+}
+
+/* Profile Info */
+.profile-info {
+  margin-top: 48px;
+  padding: 0 16px 16px;
+  text-align: center;
+}
+.profile-name {
+  font-size: 20px; font-weight: 900;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.verified {
+  width: 18px; height: 18px;
+  background: var(--red); border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 10px;
+}
+.profile-handle { font-size: 14px; color: var(--gray); margin-top: 2px; }
+.profile-bio { font-size: 13px; color: rgba(255,255,255,0.7); margin-top: 8px; line-height: 1.5; }
+
+/* Stats */
+.stats {
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  margin-top: 16px;
+}
+.stat { text-align: center; }
+.stat-val { font-size: 18px; font-weight: 700; }
+.stat-lbl { font-size: 11px; color: var(--gray); margin-top: 2px; }
+
+/* Follow Button */
+.follow-btn {
+  margin: 16px auto 0;
+  display: block;
+  width: calc(100% - 32px);
+  padding: 12px;
+  background: var(--red);
+  border: none; border-radius: 12px;
+  color: white; font-size: 15px; font-weight: 700;
+  cursor: pointer; font-family: 'Cairo', sans-serif;
+  transition: opacity 0.2s;
+}
+.follow-btn.following {
+  background: transparent;
+  border: 1.5px solid var(--gray);
+  color: var(--gray);
+}
+
+/* Banner Zone */
+.section { padding: 20px 16px 0; }
+.section-title {
+  font-size: 14px; font-weight: 700;
+  color: var(--gold);
+  margin-bottom: 12px;
+  display: flex; align-items: center; gap: 6px;
+}
+.banners-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.banner-slot {
+  background: var(--card);
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid rgba(255,255,255,0.06);
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.banner-slot:hover { border-color: var(--gold); }
+.banner-slot.active { border-color: rgba(201,168,76,0.3); }
+.banner-slot.empty { border-style: dashed; border-color: rgba(255,255,255,0.1); }
+.banner-icon {
+  width: 44px; height: 44px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+.banner-icon.active { background: linear-gradient(135deg, var(--gold), #e8c96b); }
+.banner-icon.empty { background: rgba(255,255,255,0.05); }
+.banner-info { flex: 1; min-width: 0; }
+.banner-name { font-size: 14px; font-weight: 700; }
+.banner-sub { font-size: 12px; color: var(--gray); margin-top: 2px; }
+.banner-price {
+  font-size: 13px; font-weight: 700;
+  color: var(--gold);
+  background: rgba(201,168,76,0.1);
+  border-radius: 8px;
+  padding: 4px 10px;
+}
+.banner-price.empty { color: var(--gray); background: transparent; font-size: 12px; }
+
+/* Videos Grid */
+.videos-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+  margin-top: 4px;
+}
+.video-thumb {
+  aspect-ratio: 9/16;
+  background: var(--card);
+  border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+.video-thumb::after {
+  content: attr(data-views);
+  position: absolute;
+  bottom: 4px; left: 4px;
+  font-size: 10px; font-weight: 700;
+  color: white;
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  margin: 20px 0 0;
+}
+.tab {
+  flex: 1; padding: 12px 0;
+  text-align: center; font-size: 13px; font-weight: 600;
+  color: var(--gray); cursor: pointer;
+  border: none; background: none;
+  color: inherit; font-family: 'Cairo', sans-serif;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+.tab.active { color: var(--text); border-bottom-color: var(--red); }
+
+/* Bottom Nav */
+.bottombar {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  height: 64px;
+  background: rgba(10,10,10,0.95);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255,255,255,0.06);
+  display: flex; align-items: center; justify-content: space-around;
+  z-index: 100;
+}
+.nav-item {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  cursor: pointer; padding: 8px 16px;
+  border: none; background: none; color: var(--gray);
+  font-family: 'Cairo', sans-serif;
+}
+.nav-item.active { color: var(--text); }
+.nav-icon { font-size: 20px; }
+.nav-label { font-size: 10px; font-weight: 600; }
+.nav-upload {
+  width: 48px; height: 48px; border-radius: 14px;
+  background: var(--red); border: none; color: white;
+  font-size: 22px; cursor: pointer;
+  box-shadow: 0 0 16px rgba(254,44,85,0.4);
+}
+
+/* Toast */
+.toast {
+  position: fixed; top: 16px; left: 50%;
+  transform: translateX(-50%) translateY(-60px);
+  background: var(--card); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 20px; padding: 8px 16px;
+  font-size: 13px; font-weight: 600;
+  z-index: 999; transition: transform 0.3s;
+  white-space: nowrap;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+/* Rent Modal */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.9);
+  z-index: 200; display: none;
+  align-items: flex-end;
+}
+.modal-overlay.show { display: flex; }
+.modal {
+  width: 100%;
+  background: #1a1a1a;
+  border-radius: 24px 24px 0 0;
+  padding: 24px 20px 40px;
+}
+.modal-handle {
+  width: 40px; height: 4px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 2px;
+  margin: 0 auto 20px;
+}
+.modal-title { font-size: 18px; font-weight: 700; margin-bottom: 16px; }
+.modal-field { margin-bottom: 14px; }
+.modal-label { font-size: 12px; color: var(--gray); margin-bottom: 6px; }
+.modal-select, .modal-input {
+  width: 100%; padding: 12px 14px;
+  background: rgba(255,255,255,0.05);
+  border: 1.5px solid rgba(255,255,255,0.1);
+  border-radius: 10px; color: var(--text);
+  font-size: 14px; font-family: 'Cairo', sans-serif;
+  outline: none;
+}
+.modal-submit {
+  width: 100%; padding: 14px;
+  background: var(--red); border: none; border-radius: 12px;
+  color: white; font-size: 15px; font-weight: 700;
+  cursor: pointer; font-family: 'Cairo', sans-serif;
+  margin-top: 8px;
+}
+.modal-price {
+  text-align: center; font-size: 24px; font-weight: 900;
+  color: var(--gold); margin: 12px 0;
+}
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-bg"></div>
+  <button class="back-btn" onclick="history.back()">→</button>
+  <button class="share-btn">↗</button>
+  <div class="avatar-wrap">
+    <div class="avatar" id="creatorAvatar">م</div>
+  </div>
+</div>
+
+<!-- Profile Info -->
+<div class="profile-info">
+  <div class="profile-name" id="creatorName">
+    محمد الشيخي
+    <span class="verified">✓</span>
+  </div>
+  <div class="profile-handle" id="creatorHandle">@محمد_الشيخي</div>
+  <div class="profile-bio" id="creatorBio">منشئ محتوى تقني 🤖 | أشارككم أحدث مستجدات التقنية والذكاء الاصطناعي</div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-val" id="statVideos">47</div>
+      <div class="stat-lbl">فيديو</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val" id="statFollowers">128K</div>
+      <div class="stat-lbl">متابع</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val" id="statLikes">2.4M</div>
+      <div class="stat-lbl">إعجاب</div>
+    </div>
+  </div>
+
+  <button class="follow-btn" id="followBtn" onclick="toggleFollow()">+ متابعة</button>
+</div>
+
+<!-- البنرات الإعلانية -->
+<div class="section">
+  <div class="section-title">◻ بنرات إعلانية</div>
+  <div class="banners-grid">
+
+    <div class="banner-slot active" onclick="viewBanner('سامسونج Galaxy S25')">
+      <div class="banner-icon active">📱</div>
+      <div class="banner-info">
+        <div class="banner-name">سامسونج Galaxy S25</div>
+        <div class="banner-sub">مؤجر حتى 15 مايو</div>
+      </div>
+      <div class="banner-price">250 ريال/أسبوع</div>
+    </div>
+
+    <div class="banner-slot empty" onclick="openRentModal(2)">
+      <div class="banner-icon empty">◻</div>
+      <div class="banner-info">
+        <div class="banner-name" style="color:var(--gray)">بنر متاح للإيجار</div>
+        <div class="banner-sub">اضغط لحجزه</div>
+      </div>
+      <div class="banner-price empty">من 150 ريال</div>
+    </div>
+
+    <div class="banner-slot empty" onclick="openRentModal(3)">
+      <div class="banner-icon empty">◻</div>
+      <div class="banner-info">
+        <div class="banner-name" style="color:var(--gray)">بنر متاح للإيجار</div>
+        <div class="banner-sub">اضغط لحجزه</div>
+      </div>
+      <div class="banner-price empty">من 150 ريال</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+  <button class="tab active" onclick="switchTab(this, 'videos')">📹 الفيديوهات</button>
+  <button class="tab" onclick="switchTab(this, 'liked')">❤️ الإعجابات</button>
+</div>
+
+<!-- Videos Grid -->
+<div id="videosTab">
+  <div class="videos-grid">
+    <div class="video-thumb" style="background:linear-gradient(135deg,#0d0d1a,#1a1a2e)" data-views="24.5K">🤖</div>
+    <div class="video-thumb" style="background:linear-gradient(135deg,#0a1a0a,#1a2e1a)" data-views="18.2K">💻</div>
+    <div class="video-thumb" style="background:linear-gradient(135deg,#1a0a0a,#2e1a1a)" data-views="31.7K">📱</div>
+    <div class="video-thumb" style="background:linear-gradient(135deg,#1a1a0a,#2e2e1a)" data-views="12.9K">🎯</div>
+    <div class="video-thumb" style="background:linear-gradient(135deg,#0a0a1a,#1a0a2e)" data-views="45.1K">🚀</div>
+    <div class="video-thumb" style="background:linear-gradient(135deg,#1a0a1a,#2e1a2e)" data-views="8.3K">⚡</div>
+    <div class="video-thumb" style="background:linear-gradient(135deg,#0d1a1a,#1a2e2e)" data-views="19.4K">🌐</div>
+    <div class="video-thumb" style="background:linear-gradient(135deg,#1a1a0d,#2e2e1a)" data-views="27.8K">🔥</div>
+    <div class="video-thumb" style="background:linear-gradient(135deg,#0a1a1a,#1a2e2e)" data-views="5.6K">✨</div>
+  </div>
+</div>
+
+<div id="likedTab" style="display:none; padding:40px 16px; text-align:center; color:var(--gray)">
+  الإعجابات خاصة 🔒
+</div>
+
+<!-- Bottom Nav -->
+<div class="bottombar">
+  <button class="nav-item" onclick="window.location.href='bannr_feed.html'">
+    <div class="nav-icon">🏠</div>
+    <div class="nav-label">الرئيسية</div>
+  </button>
+  <button class="nav-item">
+    <div class="nav-icon">🔍</div>
+    <div class="nav-label">استكشاف</div>
+  </button>
+  <button class="nav-upload">＋</button>
+  <button class="nav-item">
+    <div class="nav-icon">🪙</div>
+    <div class="nav-label">كوينز</div>
+  </button>
+  <button class="nav-item active">
+    <div class="nav-icon">👤</div>
+    <div class="nav-label">حسابي</div>
+  </button>
+</div>
+
+<!-- Rent Modal -->
+<div class="modal-overlay" id="rentModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">◻ حجز بنر إعلاني</div>
+
+    <div class="modal-field">
+      <div class="modal-label">المدة</div>
+      <select class="modal-select" id="rentDuration" onchange="updatePrice()">
+        <option value="1">يوم واحد</option>
+        <option value="7" selected>أسبوع</option>
+        <option value="30">شهر</option>
+      </select>
+    </div>
+
+    <div class="modal-field">
+      <div class="modal-label">رابط الإعلان</div>
+      <input class="modal-input" type="url" placeholder="https://example.com" id="rentUrl">
+    </div>
+
+    <div class="modal-field">
+      <div class="modal-label">اسم المعلن</div>
+      <input class="modal-input" type="text" placeholder="اسم شركتك أو منتجك" id="rentName">
+    </div>
+
+    <div class="modal-price" id="rentPrice">350 ريال</div>
+
+    <button class="modal-submit" onclick="submitRent()">حجز البنر الآن</button>
+    <button style="width:100%;margin-top:10px;padding:12px;background:none;border:none;color:var(--gray);cursor:pointer;font-family:'Cairo',sans-serif" onclick="closeRentModal()">إلغاء</button>
+  </div>
+</div>
+
+<script>
+const sb = supabase.createClient(
+  'https://mmodkjefxhajmcukrplk.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tb2RramVmeGhham1jdWtycGxrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczMDYyNTIsImV4cCI6MjA5Mjg4MjI1Mn0.gsED9FljH1wlNxiwD6LM4mxlSibua3uPkr1G3JIm_nU'
+);
+
+let currentUser = null;
+let creatorProfile = null;
+let isFollowing = false;
+let selectedBannerSlot = 1;
+
+// ── تحميل البيانات الحقيقية ──
+window.addEventListener('load', async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { window.location.href = 'bannr_auth.html'; return; }
+
+  // جلب بيانات المستخدم
+  const { data: user } = await sb.from('users').select('*').eq('id', session.user.id).single();
+  if (!user) return;
+  currentUser = user;
+
+  // تحديث الاسم والمعرف والصورة
+  document.getElementById('creatorName').textContent = user.name || 'منشئ جديد';
+  document.getElementById('creatorHandle').textContent = '@' + (user.handle || 'handle');
+  document.getElementById('creatorBio').textContent = user.bio || 'أهلاً بك في Bannr 🎬';
+  document.getElementById('avatarInitial').textContent = user.name?.[0] || 'م';
+
+  // جلب بيانات المنشئ (بنرات + أرباح)
+  const { data: cp } = await sb.from('creator_profiles').select('*').eq('user_id', user.id).single();
+  if (cp) {
+    creatorProfile = cp;
+    // تحديث الأرباح
+    document.getElementById('totalEarnings').textContent = (cp.total_earnings || 0).toLocaleString('ar-SA') + ' ريال';
+    // تحديث أسعار البنرات
+    if (cp.banner1_price) document.getElementById('banner1Price').textContent = cp.banner1_price + ' ريال/أسبوع';
+    if (cp.banner2_price) document.getElementById('banner2Price').textContent = cp.banner2_price + ' ريال/أسبوع';
+    // تحديث حالة البنرات
+    updateBannerStatus(cp);
+  }
+
+  // جلب عدد المتابعين
+  const { count: followersCount } = await sb.from('followers').select('*', { count: 'exact' }).eq('creator_id', user.id);
+  document.getElementById('followersCount').textContent = (followersCount || 0).toLocaleString('ar-SA');
+
+  // جلب عدد المتابَعين
+  const { count: followingCount } = await sb.from('followers').select('*', { count: 'exact' }).eq('follower_id', user.id);
+  document.getElementById('followingCount').textContent = (followingCount || 0).toLocaleString('ar-SA');
+
+  // جلب عدد الفيديوهات
+  const { count: videosCount } = await sb.from('content').select('*', { count: 'exact' }).eq('creator_id', user.id);
+  document.getElementById('videosCount').textContent = videosCount || 0;
+
+  // جلب إيجارات البنرات النشطة
+  await loadActiveBanners(user.id);
+
+  // جلب المحتوى
+  await loadContent(user.id);
+});
+
+// ── تحديث حالة البنرات ──
+function updateBannerStatus(cp) {
+  const b1Status = document.getElementById('banner1Status');
+  const b2Status = document.getElementById('banner2Status');
+  if (b1Status) {
+    b1Status.textContent = cp.banner1_status === 'rented' ? '🟢 مؤجر' : cp.banner1_status === 'available' ? '⚪ متاح' : '⛔ معطل';
+  }
+  if (b2Status) {
+    b2Status.textContent = cp.banner2_status === 'rented' ? '🟢 مؤجر' : cp.banner2_status === 'available' ? '⚪ متاح' : '⛔ معطل';
+  }
+}
+
+// ── تحميل البنرات النشطة ──
+async function loadActiveBanners(userId) {
+  const { data: rentals } = await sb.from('banner_rentals')
+    .select('*, advertiser:advertiser_id(name)')
+    .eq('creator_id', userId)
+    .eq('status', 'active')
+    .order('created_at', { ascending: false });
+
+  if (rentals && rentals.length > 0) {
+    const b1 = document.getElementById('banner1Advertiser');
+    if (b1 && rentals[0]) b1.textContent = rentals[0].advertiser?.name || rentals[0].ad_text || 'إعلان نشط';
+  }
+}
+
+// ── تحميل المحتوى ──
+async function loadContent(userId) {
+  const { data: videos } = await sb.from('content')
+    .select('*')
+    .eq('creator_id', userId)
+    .eq('status', 'published')
+    .order('created_at', { ascending: false })
+    .limit(9);
+
+  const grid = document.getElementById('videosTab');
+  if (videos && videos.length > 0) {
+    const emojis = ['🎬','🎥','📹','🎞️','🎭','🎨','🎵','🎤','💡'];
+    const colors = [
+      'linear-gradient(135deg,#0d0d1a,#1a1a2e)',
+      'linear-gradient(135deg,#1a0d0d,#2e1a1a)',
+      'linear-gradient(135deg,#0d1a0d,#1a2e1a)',
+      'linear-gradient(135deg,#1a1a0d,#2e2e1a)',
+    ];
+    grid.innerHTML = `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px;margin-top:8px">` +
+      videos.map((v, i) => `
+        <div style="aspect-ratio:9/16;border-radius:4px;background:${colors[i%4]};
+             display:flex;align-items:center;justify-content:center;font-size:28px;
+             cursor:pointer;position:relative;overflow:hidden;" onclick="showToast('${v.title || 'فيديو'}')">
+          ${emojis[i%9]}
+          <div style="position:absolute;bottom:4px;left:4px;font-size:10px;font-weight:700;color:white">
+            ${v.views_count > 999 ? (v.views_count/1000).toFixed(1)+'K' : v.views_count || 0}
+          </div>
+        </div>
+      `).join('') + `</div>`;
+  }
+}
+
+// ── متابعة / إلغاء متابعة ──
+async function toggleFollow() {
+  if (!currentUser) return;
+  isFollowing = !isFollowing;
+  const btn = document.getElementById('followBtn');
+  btn.textContent = isFollowing ? '✓ تتابعه' : '+ متابعة';
+  btn.className = isFollowing ? 'follow-btn following' : 'follow-btn';
+
+  if (isFollowing) {
+    await sb.from('followers').insert({ follower_id: currentUser.id, creator_id: currentUser.id });
+    showToast('✓ بدأت المتابعة');
+  } else {
+    await sb.from('followers').delete().eq('follower_id', currentUser.id).eq('creator_id', currentUser.id);
+    showToast('ألغيت المتابعة');
+  }
+}
+
+// ── تبديل التابات ──
+function switchTab(el, tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('videosTab').style.display = tab === 'videos' ? '' : 'none';
+  document.getElementById('likedTab').style.display  = tab === 'liked'  ? '' : 'none';
+}
+
+// ── نافذة الإيجار ──
+const prices = { 1: 50, 7: 350, 30: 999 };
+
+function openRentModal(slot) {
+  selectedBannerSlot = slot;
+  document.getElementById('rentModal').classList.add('show');
+  updatePrice();
+}
+
+function closeRentModal() {
+  document.getElementById('rentModal').classList.remove('show');
+}
+
+function updatePrice() {
+  const days = document.getElementById('rentDuration').value;
+  document.getElementById('rentPrice').textContent = prices[days] + ' ريال';
+}
+
+// ── إرسال طلب الإيجار لـ Supabase ──
+async function submitRent() {
+  const name = document.getElementById('rentName').value.trim();
+  const url  = document.getElementById('rentUrl').value.trim();
+  const days = parseInt(document.getElementById('rentDuration').value);
+  if (!name || !url) { showToast('يرجى ملء جميع الحقول'); return; }
+  if (!currentUser) { showToast('يجب تسجيل الدخول أولاً'); return; }
+
+  const price = prices[days];
+  const startDate = new Date();
+  const endDate = new Date();
+  endDate.setDate(endDate.getDate() + days);
+
+  const { error } = await sb.from('banner_rentals').insert({
+    creator_id: currentUser.id,
+    advertiser_id: currentUser.id,
+    banner_slot: selectedBannerSlot,
+    ad_text: name,
+    ad_link: url,
+    duration_type: days === 1 ? 'daily' : days === 7 ? 'weekly' : 'monthly',
+    start_date: startDate.toISOString(),
+    end_date: endDate.toISOString(),
+    price_paid: price,
+    platform_cut: Math.round(price * 0.2),
+    creator_cut: Math.round(price * 0.8),
+    status: 'pending'
+  });
+
+  if (error) { showToast('حدث خطأ — حاول مجدداً'); return; }
+
+  closeRentModal();
+  showToast('✓ تم إرسال طلب الإيجار بنجاح!');
+}
+
+function viewBanner(name) { showToast('إعلان: ' + name); }
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>

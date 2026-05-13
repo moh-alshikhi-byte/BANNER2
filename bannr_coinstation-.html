@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Bannr — CoinStation</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
+:root {
+  --red: #FE2C55; --gold: #C9A84C;
+  --black: #0A0A0A; --card: #161616; --text: #F5F0E8; --gray: #888;
+  --green: #10B981; --coin: #F5C842;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body { font-family: 'Cairo', sans-serif; background: var(--black); color: var(--text); padding-bottom: 80px; overflow-x: hidden; }
+
+/* ── Top Bar ── */
+.topbar {
+  padding: 16px;
+  display: flex; align-items: center; justify-content: space-between;
+  background: rgba(10,10,10,0.97);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  position: sticky; top: 0; z-index: 50;
+}
+.topbar-logo { font-size: 20px; font-weight: 900; }
+.topbar-logo span { color: var(--coin); }
+.coins-badge {
+  display: flex; align-items: center; gap: 6px;
+  background: rgba(245,200,66,0.1);
+  border: 1px solid rgba(245,200,66,0.25);
+  border-radius: 20px; padding: 6px 14px;
+  font-size: 14px; font-weight: 700; color: var(--coin);
+  cursor: pointer;
+}
+
+/* ── Hero Balance ── */
+.hero {
+  margin: 16px;
+  background: linear-gradient(135deg, #0f0c00, #1a1500, #0a0800);
+  border: 1px solid rgba(245,200,66,0.2);
+  border-radius: 24px; padding: 24px 20px;
+  text-align: center; position: relative; overflow: hidden;
+}
+.hero::before {
+  content: '';
+  position: absolute; top: -40px; left: 50%; transform: translateX(-50%);
+  width: 200px; height: 200px;
+  background: radial-gradient(circle, rgba(245,200,66,0.08), transparent 70%);
+  pointer-events: none;
+}
+.hero-coin-icon {
+  font-size: 48px; margin-bottom: 8px;
+  filter: drop-shadow(0 0 20px rgba(245,200,66,0.4));
+  animation: float 3s ease-in-out infinite;
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.hero-label { font-size: 13px; color: var(--gray); }
+.hero-balance { font-size: 48px; font-weight: 900; color: var(--coin); line-height: 1; margin: 4px 0; }
+.hero-balance span { font-size: 20px; color: rgba(245,200,66,0.6); }
+.hero-sub { font-size: 12px; color: rgba(255,255,255,0.35); margin-top: 4px; }
+.hero-actions { display: flex; gap: 10px; margin-top: 18px; }
+.hero-btn {
+  flex: 1; padding: 12px;
+  border-radius: 14px; border: none;
+  font-size: 13px; font-weight: 700;
+  cursor: pointer; font-family: 'Cairo', sans-serif;
+  transition: transform 0.15s, opacity 0.15s;
+}
+.hero-btn:active { transform: scale(0.96); }
+.hero-btn-buy {
+  background: var(--coin); color: #0a0800;
+}
+.hero-btn-spend {
+  background: rgba(245,200,66,0.1);
+  border: 1px solid rgba(245,200,66,0.25);
+  color: var(--coin);
+}
+
+/* ── Tabs ── */
+.tabs {
+  display: flex; margin: 0 16px 8px;
+  background: var(--card);
+  border-radius: 14px; padding: 4px;
+}
+.tab-btn {
+  flex: 1; padding: 10px;
+  border-radius: 10px; border: none;
+  background: transparent; color: var(--gray);
+  font-size: 13px; font-weight: 700;
+  cursor: pointer; font-family: 'Cairo', sans-serif;
+  transition: all 0.2s;
+}
+.tab-btn.active { background: rgba(245,200,66,0.12); color: var(--coin); }
+
+/* ── Tab Panels ── */
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── Watch & Earn Section ── */
+.section { padding: 0 16px; margin-top: 4px; }
+.section-title { font-size: 15px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+
+/* Ad Player Card */
+.ad-player-card {
+  background: var(--card);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 20px; overflow: hidden; margin-bottom: 12px;
+  cursor: pointer; transition: border-color 0.2s;
+}
+.ad-player-card.watching {
+  border-color: rgba(245,200,66,0.3);
+}
+.ad-visual {
+  height: 180px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 64px; position: relative;
+  background: linear-gradient(135deg, #111, #1a1a1a);
+}
+.ad-reward-badge {
+  position: absolute; top: 12px; left: 12px;
+  background: var(--coin); color: #0a0800;
+  border-radius: 20px; padding: 4px 12px;
+  font-size: 12px; font-weight: 700;
+}
+.ad-play-btn {
+  position: absolute;
+  width: 56px; height: 56px; border-radius: 50%;
+  background: rgba(245,200,66,0.9);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; color: #0a0800;
+  transition: transform 0.2s;
+}
+.ad-player-card:hover .ad-play-btn { transform: scale(1.1); }
+.ad-player-card.watching .ad-play-btn { display: none; }
+.ad-info { padding: 14px 16px; }
+.ad-advertiser { font-size: 11px; color: var(--gray); margin-bottom: 2px; }
+.ad-title { font-size: 15px; font-weight: 700; }
+.ad-desc { font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 4px; }
+.ad-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 16px 14px;
+}
+.ad-duration { font-size: 12px; color: var(--gray); display: flex; align-items: center; gap: 4px; }
+.ad-earn-label { font-size: 13px; font-weight: 700; color: var(--coin); }
+
+/* ── Watch Progress Overlay ── */
+.watch-progress {
+  display: none; padding: 14px 16px;
+  background: rgba(245,200,66,0.04);
+  border-top: 1px solid rgba(245,200,66,0.1);
+}
+.watch-progress.visible { display: block; }
+.wp-bar-wrap {
+  height: 6px; background: rgba(255,255,255,0.06);
+  border-radius: 3px; overflow: hidden; margin-bottom: 10px;
+}
+.wp-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--coin), #f0a500);
+  border-radius: 3px;
+  width: 0%;
+  transition: width 1s linear;
+}
+.wp-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.wp-time { font-size: 12px; color: var(--gray); }
+.wp-confirm-btn {
+  padding: 8px 20px;
+  background: var(--coin); color: #0a0800;
+  border: none; border-radius: 10px;
+  font-size: 13px; font-weight: 700;
+  cursor: pointer; font-family: 'Cairo', sans-serif;
+  transition: all 0.2s;
+}
+.wp-confirm-btn:disabled {
+  background: rgba(255,255,255,0.08);
+  color: var(--gray); cursor: default;
+}
+.wp-confirm-btn.pulse {
+  animation: pulse 0.6s ease-in-out;
+}
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); box-shadow: 0 0 16px rgba(245,200,66,0.5); }
+}
+.wp-dots { display: flex; gap: 6px; }
+.wp-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: rgba(255,255,255,0.1);
+  transition: background 0.3s;
+}
+.wp-dot.done { background: var(--coin); }
+.wp-dot.active { background: var(--coin); animation: dotPulse 1s ease-in-out infinite; }
+@keyframes dotPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* Completed State */
+.ad-complete {
+  display: none; padding: 16px;
+  background: rgba(16,185,129,0.06);
+  border-top: 1px solid rgba(16,185,129,0.15);
+  text-align: center;
+}
+.ad-complete.visible { display: block; }
+.ad-complete-icon { font-size: 32px; margin-bottom: 6px; }
+.ad-complete-text { font-size: 14px; font-weight: 700; color: var(--green); }
+.ad-complete-sub { font-size: 12px; color: var(--gray); margin-top: 2px; }
+
+/* ── Available Ads Queue ── */
+.ads-queue { display: flex; flex-direction: column; gap: 10px; }
+.queue-item {
+  background: var(--card);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px; padding: 14px;
+  display: flex; align-items: center; gap: 12px;
+  cursor: pointer; transition: border-color 0.2s;
+}
+.queue-item:hover { border-color: rgba(245,200,66,0.2); }
+.queue-icon {
+  width: 48px; height: 48px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px; flex-shrink: 0;
+}
+.queue-info { flex: 1; }
+.queue-name { font-size: 14px; font-weight: 700; }
+.queue-detail { font-size: 12px; color: var(--gray); margin-top: 2px; }
+.queue-reward {
+  display: flex; flex-direction: column; align-items: center;
+  background: rgba(245,200,66,0.08);
+  border-radius: 10px; padding: 8px 12px;
+}
+.queue-coins { font-size: 16px; font-weight: 900; color: var(--coin); }
+.queue-coins-lbl { font-size: 10px; color: var(--gray); }
+
+/* ── History Tab ── */
+.history-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.hist-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; flex-shrink: 0;
+}
+.hist-info { flex: 1; }
+.hist-title { font-size: 13px; font-weight: 700; }
+.hist-time { font-size: 11px; color: var(--gray); margin-top: 2px; }
+.hist-amount { font-size: 15px; font-weight: 700; }
+.hist-amount.earn { color: var(--coin); }
+.hist-amount.spend { color: var(--red); }
+
+/* ── Buy Tab ── */
+.buy-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+.buy-card {
+  background: var(--card);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px; padding: 20px 16px;
+  text-align: center; cursor: pointer;
+  transition: border-color 0.2s, transform 0.15s;
+  position: relative; overflow: hidden;
+}
+.buy-card:hover { border-color: rgba(245,200,66,0.3); }
+.buy-card:active { transform: scale(0.97); }
+.buy-card.featured {
+  border-color: rgba(245,200,66,0.4);
+  background: linear-gradient(135deg, #141200, #1e1a00);
+}
+.buy-best {
+  position: absolute; top: 10px; left: 10px;
+  background: var(--red); color: white;
+  border-radius: 6px; padding: 2px 8px;
+  font-size: 10px; font-weight: 700;
+}
+.buy-coins-amount { font-size: 32px; font-weight: 900; color: var(--coin); }
+.buy-coins-icon { font-size: 24px; margin-bottom: 4px; }
+.buy-label { font-size: 12px; color: var(--gray); margin-top: 2px; }
+.buy-price {
+  margin-top: 12px; padding: 8px;
+  background: rgba(245,200,66,0.1);
+  border-radius: 8px;
+  font-size: 14px; font-weight: 700; color: var(--coin);
+}
+.buy-bonus {
+  font-size: 11px; color: var(--green);
+  margin-top: 6px; font-weight: 600;
+}
+
+/* ── Spend Tab ── */
+.spend-section { margin-bottom: 20px; }
+.spend-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+.rose-card {
+  background: var(--card);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px; padding: 16px;
+  text-align: center; cursor: pointer;
+  transition: border-color 0.2s, transform 0.15s;
+}
+.rose-card:hover { border-color: rgba(254,44,85,0.3); }
+.rose-card:active { transform: scale(0.97); }
+.rose-icon { font-size: 32px; margin-bottom: 6px; }
+.rose-name { font-size: 13px; font-weight: 700; }
+.rose-cost { font-size: 12px; color: var(--coin); margin-top: 4px; font-weight: 600; }
+.rose-value { font-size: 11px; color: var(--gray); margin-top: 2px; }
+.discount-card {
+  background: var(--card);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px; padding: 14px;
+  display: flex; align-items: center; gap: 12px;
+  cursor: pointer; margin-bottom: 8px;
+  transition: border-color 0.2s;
+}
+.discount-card:hover { border-color: rgba(245,200,66,0.3); }
+.discount-logo {
+  width: 48px; height: 48px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px; flex-shrink: 0;
+}
+.discount-info { flex: 1; }
+.discount-brand { font-size: 14px; font-weight: 700; }
+.discount-desc { font-size: 12px; color: var(--gray); margin-top: 2px; }
+.discount-cost {
+  background: rgba(245,200,66,0.08);
+  border-radius: 10px; padding: 8px 12px;
+  text-align: center;
+}
+.discount-coins { font-size: 15px; font-weight: 700; color: var(--coin); }
+.discount-off { font-size: 11px; color: var(--green); font-weight: 600; }
+
+/* ── Bottom Nav ── */
+.bottombar {
+  position: fixed; bottom: 0; left: 0; right: 0; height: 64px;
+  background: rgba(10,10,10,0.97); backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255,255,255,0.06);
+  display: flex; align-items: center; justify-content: space-around; z-index: 100;
+}
+.nav-item {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  cursor: pointer; padding: 8px 16px; border: none; background: none;
+  color: var(--gray); font-family: 'Cairo', sans-serif;
+}
+.nav-item.active { color: var(--coin); }
+.nav-icon { font-size: 20px; }
+.nav-label { font-size: 10px; font-weight: 600; }
+.nav-upload {
+  width: 48px; height: 48px; border-radius: 14px;
+  background: var(--red); border: none; color: white;
+  font-size: 22px; cursor: pointer;
+  box-shadow: 0 0 16px rgba(254,44,85,0.4);
+}
+
+/* ── Toast ── */
+.toast {
+  position: fixed; top: 70px; left: 50%;
+  transform: translateX(-50%) translateY(-80px);
+  background: var(--card); border: 1px solid rgba(245,200,66,0.2);
+  border-radius: 20px; padding: 10px 20px;
+  font-size: 13px; font-weight: 700;
+  z-index: 999; transition: transform 0.3s; white-space: nowrap;
+  color: var(--coin);
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+/* ── Coin Fly Animation ── */
+.coin-fly {
+  position: fixed; font-size: 28px;
+  pointer-events: none; z-index: 1000;
+  animation: coinFly 0.9s ease-out forwards;
+}
+@keyframes coinFly {
+  0% { transform: translateY(0) scale(1); opacity: 1; }
+  100% { transform: translateY(-120px) scale(0.5); opacity: 0; }
+}
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<!-- Top Bar -->
+<div class="topbar">
+  <div class="topbar-logo">🪙 <span>Coin</span>Station</div>
+  <div class="coins-badge" id="balanceBadge">
+    <span>🪙</span>
+    <span id="balanceNum">—</span>
+  </div>
+</div>
+
+<!-- Hero Balance -->
+<div class="hero">
+  <div class="hero-coin-icon">🪙</div>
+  <div class="hero-label">رصيدك من الكوينز</div>
+  <div class="hero-balance"><span id="heroBalance">—</span> <span>كوينز</span></div>
+  <div class="hero-sub">كل 100 كوينز = وردة واحدة 🌹</div>
+  <div class="hero-actions">
+    <button class="hero-btn hero-btn-buy" onclick="switchTab('buy')">🛒 شراء كوينز</button>
+    <button class="hero-btn hero-btn-spend" onclick="switchTab('spend')">🌹 إنفاق كوينز</button>
+  </div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+  <button class="tab-btn active" id="tab-watch" onclick="switchTab('watch')">📺 شاهد واكسب</button>
+  <button class="tab-btn" id="tab-buy" onclick="switchTab('buy')">💳 شراء</button>
+  <button class="tab-btn" id="tab-spend" onclick="switchTab('spend')">🌹 إنفاق</button>
+  <button class="tab-btn" id="tab-history" onclick="switchTab('history')">📋 السجل</button>
+</div>
+
+<!-- ══ TAB: Watch & Earn ══ -->
+<div class="tab-panel active" id="panel-watch">
+
+  <!-- Featured Ad Player -->
+  <div class="section" style="margin-top:12px">
+    <div class="section-title">🔥 إعلان مميز الآن</div>
+
+    <div class="ad-player-card" id="mainAdCard">
+      <div class="ad-visual" style="background: linear-gradient(135deg, #0a0a1a, #1a1a3a)">
+        🛍️
+        <div class="ad-reward-badge">+10 كوينز</div>
+        <div class="ad-play-btn" id="playBtn" onclick="startWatching()">▶</div>
+      </div>
+      <div class="ad-info">
+        <div class="ad-advertiser">نون — Noon.com</div>
+        <div class="ad-title">تسوق الآن واحصل على أفضل العروض</div>
+        <div class="ad-desc">خصومات حصرية على آلاف المنتجات يومياً</div>
+      </div>
+      <div class="ad-footer">
+        <div class="ad-duration">⏱ 30 ثانية</div>
+        <div class="ad-earn-label">🪙 +10 كوينز</div>
+      </div>
+
+      <!-- Progress (hidden until watching) -->
+      <div class="watch-progress" id="watchProgress">
+        <div class="wp-bar-wrap">
+          <div class="wp-bar-fill" id="wpFill"></div>
+        </div>
+        <div class="wp-row">
+          <div class="wp-time" id="wpTimer">30 ثانية متبقية</div>
+          <div class="wp-dots" id="wpDots">
+            <div class="wp-dot active" id="dot1"></div>
+            <div class="wp-dot" id="dot2"></div>
+            <div class="wp-dot" id="dot3"></div>
+            <div class="wp-dot" id="dot4"></div>
+            <div class="wp-dot" id="dot5"></div>
+            <div class="wp-dot" id="dot6"></div>
+          </div>
+        </div>
+        <button class="wp-confirm-btn" id="confirmBtn" disabled onclick="tapConfirm()">
+          انتظر...
+        </button>
+      </div>
+
+      <!-- Complete State -->
+      <div class="ad-complete" id="adComplete">
+        <div class="ad-complete-icon">🎉</div>
+        <div class="ad-complete-text">تم! +10 كوينز أُضيفت لرصيدك</div>
+        <div class="ad-complete-sub">شاهد الإعلان التالي لتكسب المزيد</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Queue -->
+  <div class="section" style="margin-top:8px">
+    <div class="section-title">📋 إعلانات متاحة</div>
+    <div class="ads-queue">
+
+      <div class="queue-item" onclick="showToast('📺 سيبدأ الإعلان قريباً')">
+        <div class="queue-icon" style="background:rgba(33,150,243,0.1)">📱</div>
+        <div class="queue-info">
+          <div class="queue-name">Samsung Galaxy S25</div>
+          <div class="queue-detail">30 ثانية • تقنية</div>
+        </div>
+        <div class="queue-reward">
+          <div class="queue-coins">🪙 10</div>
+          <div class="queue-coins-lbl">كوينز</div>
+        </div>
+      </div>
+
+      <div class="queue-item" onclick="showToast('📺 سيبدأ الإعلان قريباً')">
+        <div class="queue-icon" style="background:rgba(16,185,129,0.1)">🏋️</div>
+        <div class="queue-info">
+          <div class="queue-name">Power Gym — الرياض</div>
+          <div class="queue-detail">30 ثانية • رياضة</div>
+        </div>
+        <div class="queue-reward">
+          <div class="queue-coins">🪙 10</div>
+          <div class="queue-coins-lbl">كوينز</div>
+        </div>
+      </div>
+
+      <div class="queue-item" onclick="showToast('📺 سيبدأ الإعلان قريباً')">
+        <div class="queue-icon" style="background:rgba(254,44,85,0.1)">🍕</div>
+        <div class="queue-info">
+          <div class="queue-name">هرفي — توصيل سريع</div>
+          <div class="queue-detail">30 ثانية • طعام</div>
+        </div>
+        <div class="queue-reward">
+          <div class="queue-coins">🪙 15</div>
+          <div class="queue-coins-lbl">كوينز</div>
+        </div>
+      </div>
+
+      <div class="queue-item" onclick="showToast('📺 سيبدأ الإعلان قريباً')">
+        <div class="queue-icon" style="background:rgba(201,168,76,0.1)">💎</div>
+        <div class="queue-info">
+          <div class="queue-name">ساعات فاخرة — Luxury Time</div>
+          <div class="queue-detail">30 ثانية • موضة</div>
+        </div>
+        <div class="queue-reward">
+          <div class="queue-coins">🪙 20</div>
+          <div class="queue-coins-lbl">كوينز</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- ══ TAB: Buy ══ -->
+<div class="tab-panel" id="panel-buy">
+  <div class="section" style="margin-top:12px">
+    <div class="section-title">💳 اشترِ كوينز مباشرة</div>
+    <div class="buy-grid">
+
+      <div class="buy-card" onclick="buyCoins(100, 5)">
+        <div class="buy-coins-icon">🪙</div>
+        <div class="buy-coins-amount">100</div>
+        <div class="buy-label">كوينز</div>
+        <div class="buy-price">5 ريال</div>
+      </div>
+
+      <div class="buy-card featured" onclick="buyCoins(250, 10)">
+        <div class="buy-best">الأكثر مبيعاً</div>
+        <div class="buy-coins-icon">🪙</div>
+        <div class="buy-coins-amount">250</div>
+        <div class="buy-label">كوينز</div>
+        <div class="buy-price">10 ريال</div>
+        <div class="buy-bonus">+25 كوينز مجاناً 🎁</div>
+      </div>
+
+      <div class="buy-card" onclick="buyCoins(600, 20)">
+        <div class="buy-coins-icon">🪙</div>
+        <div class="buy-coins-amount">600</div>
+        <div class="buy-label">كوينز</div>
+        <div class="buy-price">20 ريال</div>
+        <div class="buy-bonus">+60 كوينز مجاناً 🎁</div>
+      </div>
+
+      <div class="buy-card" onclick="buyCoins(1500, 45)">
+        <div class="buy-coins-icon">🪙</div>
+        <div class="buy-coins-amount">1500</div>
+        <div class="buy-label">كوينز</div>
+        <div class="buy-price">45 ريال</div>
+        <div class="buy-bonus">+200 كوينز مجاناً 🎁</div>
+      </div>
+
+    </div>
+
+    <div style="margin-top:16px; padding:14px; background:var(--card); border-radius:14px; text-align:center; border: 1px solid rgba(255,255,255,0.05)">
+      <div style="font-size:13px; color:var(--gray)">طرق الدفع المتاحة</div>
+      <div style="margin-top:8px; font-size:20px; display:flex; gap:12px; justify-content:center">
+        💳 🏦 📱
+      </div>
+      <div style="font-size:12px; color:rgba(255,255,255,0.3); margin-top:6px">Visa • Mada • Apple Pay • STC Pay</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TAB: Spend ══ -->
+<div class="tab-panel" id="panel-spend">
+
+  <!-- Roses -->
+  <div class="section" style="margin-top:12px">
+    <div class="section-title">🌹 أرسل وروداً للمنشئين</div>
+    <div style="font-size:12px; color:var(--gray); margin-bottom:12px">كل وردة = دخل حقيقي للمنشئ المفضل لديك</div>
+    <div class="spend-grid">
+
+      <div class="rose-card" onclick="sendRose('وردة', 10)">
+        <div class="rose-icon">🌹</div>
+        <div class="rose-name">وردة</div>
+        <div class="rose-cost">🪙 10 كوينز</div>
+        <div class="rose-value">= 0.5 ريال للمنشئ</div>
+      </div>
+
+      <div class="rose-card" onclick="sendRose('باقة ورد', 50)">
+        <div class="rose-icon">💐</div>
+        <div class="rose-name">باقة ورد</div>
+        <div class="rose-cost">🪙 50 كوينز</div>
+        <div class="rose-value">= 2.5 ريال للمنشئ</div>
+      </div>
+
+      <div class="rose-card" onclick="sendRose('قلب ذهبي', 100)">
+        <div class="rose-icon">💛</div>
+        <div class="rose-name">قلب ذهبي</div>
+        <div class="rose-cost">🪙 100 كوينز</div>
+        <div class="rose-value">= 5 ريال للمنشئ</div>
+      </div>
+
+      <div class="rose-card" onclick="sendRose('تاج ملكي', 500)">
+        <div class="rose-icon">👑</div>
+        <div class="rose-name">تاج ملكي</div>
+        <div class="rose-cost">🪙 500 كوينز</div>
+        <div class="rose-value">= 25 ريال للمنشئ</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Discount Codes -->
+  <div class="section spend-section">
+    <div class="section-title">🏷️ استبدل بكوبونات خصم</div>
+
+    <div class="discount-card" onclick="redeemDiscount('نون', 50, '10%')">
+      <div class="discount-logo" style="background:rgba(255,165,0,0.1)">🛍️</div>
+      <div class="discount-info">
+        <div class="discount-brand">نون — Noon</div>
+        <div class="discount-desc">كوبون خصم على المتجر الإلكتروني</div>
+      </div>
+      <div class="discount-cost">
+        <div class="discount-coins">🪙 50</div>
+        <div class="discount-off">خصم 10%</div>
+      </div>
+    </div>
+
+    <div class="discount-card" onclick="redeemDiscount('هرفي', 30, '15 ريال')">
+      <div class="discount-logo" style="background:rgba(254,44,85,0.1)">🍔</div>
+      <div class="discount-info">
+        <div class="discount-brand">هرفي</div>
+        <div class="discount-desc">خصم على طلبك القادم</div>
+      </div>
+      <div class="discount-cost">
+        <div class="discount-coins">🪙 30</div>
+        <div class="discount-off">خصم 15 ريال</div>
+      </div>
+    </div>
+
+    <div class="discount-card" onclick="redeemDiscount('Power Gym', 80, 'شهر مجاني')">
+      <div class="discount-logo" style="background:rgba(16,185,129,0.1)">🏋️</div>
+      <div class="discount-info">
+        <div class="discount-brand">Power Gym</div>
+        <div class="discount-desc">اشتراك شهر مجاني</div>
+      </div>
+      <div class="discount-cost">
+        <div class="discount-coins">🪙 80</div>
+        <div class="discount-off">شهر مجاني</div>
+      </div>
+    </div>
+
+    <div class="discount-card" onclick="redeemDiscount('سلة', 60, '20%')">
+      <div class="discount-logo" style="background:rgba(59,130,246,0.1)">🏪</div>
+      <div class="discount-info">
+        <div class="discount-brand">سلة</div>
+        <div class="discount-desc">خصم على متاجر سلة</div>
+      </div>
+      <div class="discount-cost">
+        <div class="discount-coins">🪙 60</div>
+        <div class="discount-off">خصم 20%</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ TAB: History ══ -->
+<div class="tab-panel" id="panel-history">
+  <div class="section" style="margin-top:12px">
+    <div class="section-title">📋 سجل المعاملات</div>
+
+    <div class="history-item">
+      <div class="hist-icon" style="background:rgba(245,200,66,0.1)">📺</div>
+      <div class="hist-info">
+        <div class="hist-title">مشاهدة إعلان نون</div>
+        <div class="hist-time">اليوم، 10:32 صباحاً</div>
+      </div>
+      <div class="hist-amount earn">+10 🪙</div>
+    </div>
+
+    <div class="history-item">
+      <div class="hist-icon" style="background:rgba(254,44,85,0.1)">🌹</div>
+      <div class="hist-info">
+        <div class="hist-title">وردة إلى @محمد_الشيخي</div>
+        <div class="hist-time">أمس، 9:15 مساءً</div>
+      </div>
+      <div class="hist-amount spend">-10 🪙</div>
+    </div>
+
+    <div class="history-item">
+      <div class="hist-icon" style="background:rgba(245,200,66,0.1)">📺</div>
+      <div class="hist-info">
+        <div class="hist-title">مشاهدة إعلان Samsung</div>
+        <div class="hist-time">أمس، 3:47 مساءً</div>
+      </div>
+      <div class="hist-amount earn">+10 🪙</div>
+    </div>
+
+    <div class="history-item">
+      <div class="hist-icon" style="background:rgba(16,185,129,0.1)">🎁</div>
+      <div class="hist-info">
+        <div class="hist-title">مكافأة الترحيب بالمنصة</div>
+        <div class="hist-time">منذ 3 أيام</div>
+      </div>
+      <div class="hist-amount earn">+50 🪙</div>
+    </div>
+
+    <div class="history-item">
+      <div class="hist-icon" style="background:rgba(245,200,66,0.1)">📺</div>
+      <div class="hist-info">
+        <div class="hist-title">مشاهدة إعلان Power Gym</div>
+        <div class="hist-time">منذ 3 أيام</div>
+      </div>
+      <div class="hist-amount earn">+10 🪙</div>
+    </div>
+
+    <div class="history-item">
+      <div class="hist-icon" style="background:rgba(254,44,85,0.1)">💐</div>
+      <div class="hist-info">
+        <div class="hist-title">باقة ورد إلى @سارة_المطبخ</div>
+        <div class="hist-time">منذ 4 أيام</div>
+      </div>
+      <div class="hist-amount spend">-50 🪙</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Bottom Nav -->
+<div class="bottombar">
+  <button class="nav-item" onclick="window.location.href='bannr_feed.html'">
+    <div class="nav-icon">🏠</div><div class="nav-label">الرئيسية</div>
+  </button>
+  <button class="nav-item" onclick="window.location.href='bannr_explore.html'">
+    <div class="nav-icon">🔍</div><div class="nav-label">استكشاف</div>
+  </button>
+  <button class="nav-upload">＋</button>
+  <button class="nav-item active">
+    <div class="nav-icon">🪙</div><div class="nav-label">كوينز</div>
+  </button>
+  <button class="nav-item" onclick="window.location.href='bannr_creator.html'">
+    <div class="nav-icon">👤</div><div class="nav-label">حسابي</div>
+  </button>
+</div>
+
+<script>
+const sb = supabase.createClient(
+  'https://mmodkjefxhajmcukrplk.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tb2RramVmeGhham1jdWtycGxrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczMDYyNTIsImV4cCI6MjA5Mjg4MjI1Mn0.gsED9FljH1wlNxiwD6LM4mxlSibua3uPkr1G3JIm_nU'
+);
+
+let currentUser = null;
+let watching = false;
+let csSeconds = 0;
+let csInterval = null;
+let tapsDue = 0;
+let tapsGiven = 0;
+const CS_TOTAL = 30;
+const TAP_EVERY = 5;
+
+// ── Load User ──
+window.addEventListener('load', async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { window.location.href = 'bannr_auth.html'; return; }
+  const { data: profile } = await sb.from('users').select('*').eq('id', session.user.id).single();
+  if (profile) {
+    currentUser = profile;
+    updateBalanceDisplay(profile.coins_balance || 0);
+  }
+});
+
+function updateBalanceDisplay(n) {
+  document.getElementById('balanceNum').textContent = n;
+  document.getElementById('heroBalance').textContent = n;
+}
+
+// ── Tabs ──
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  document.getElementById('panel-' + tab).classList.add('active');
+}
+
+// ── Watch Logic ──
+function startWatching() {
+  if (watching) return;
+  watching = true;
+  document.getElementById('mainAdCard').classList.add('watching');
+  document.getElementById('watchProgress').classList.add('visible');
+  csSeconds = 0;
+  tapsGiven = 0;
+  tapsDue = 0;
+
+  csInterval = setInterval(() => {
+    csSeconds++;
+    const pct = (csSeconds / CS_TOTAL) * 100;
+    document.getElementById('wpFill').style.width = pct + '%';
+
+    const remaining = CS_TOTAL - csSeconds;
+    document.getElementById('wpTimer').textContent = remaining > 0 ? `${remaining} ثانية متبقية` : 'انتهى الإعلان!';
+
+    // Update dots (6 dots for 30 seconds, every 5s)
+    const dotIndex = Math.floor(csSeconds / TAP_EVERY);
+    for (let i = 0; i < 6; i++) {
+      const dot = document.getElementById('dot' + (i + 1));
+      if (!dot) continue;
+      if (i < dotIndex) { dot.classList.add('done'); dot.classList.remove('active'); }
+      else if (i === dotIndex && csSeconds < CS_TOTAL) { dot.classList.add('active'); }
+    }
+
+    // Tap prompt every 5 seconds
+    if (csSeconds % TAP_EVERY === 0 && csSeconds < CS_TOTAL) {
+      tapsDue++;
+      const btn = document.getElementById('confirmBtn');
+      btn.disabled = false;
+      btn.textContent = '✓ اضغط الآن للتأكيد!';
+      btn.classList.add('pulse');
+      setTimeout(() => btn.classList.remove('pulse'), 600);
+    }
+
+    if (csSeconds >= CS_TOTAL) {
+      clearInterval(csInterval);
+      const btn = document.getElementById('confirmBtn');
+      btn.disabled = false;
+      btn.textContent = '🪙 احصل على 10 كوينز!';
+      btn.onclick = completeAd;
+    }
+  }, 1000);
+}
+
+function tapConfirm() {
+  tapsGiven++;
+  const btn = document.getElementById('confirmBtn');
+  btn.disabled = true;
+  btn.textContent = '✓ تم التأكيد';
+  showToast('✓ تم التأكيد — استمر بالمشاهدة');
+}
+
+async function completeAd() {
+  clearInterval(csInterval);
+  document.getElementById('watchProgress').classList.remove('visible');
+  document.getElementById('adComplete').classList.add('visible');
+
+  if (currentUser) {
+    const newBal = (currentUser.coins_balance || 0) + 10;
+    await sb.from('users').update({ coins_balance: newBal }).eq('id', currentUser.id);
+    await sb.from('coins_transactions').insert({
+      user_id: currentUser.id,
+      amount: 10,
+      type: 'earned',
+      source: 'coinstation',
+      description: 'مشاهدة إعلان نون'
+    });
+    currentUser.coins_balance = newBal;
+    updateBalanceDisplay(newBal);
+  }
+
+  flyCoins();
+  showToast('🪙 +10 كوينز أُضيفت لرصيدك!');
+  watching = false;
+}
+
+function flyCoins() {
+  for (let i = 0; i < 5; i++) {
+    setTimeout(() => {
+      const el = document.createElement('div');
+      el.className = 'coin-fly';
+      el.textContent = '🪙';
+      el.style.left = (30 + Math.random() * 40) + '%';
+      el.style.top = '40%';
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 900);
+    }, i * 120);
+  }
+}
+
+// ── Buy ──
+function buyCoins(amount, price) {
+  showToast(`💳 شراء ${amount} كوينز بـ ${price} ريال — قريباً`);
+}
+
+// ── Spend ──
+function sendRose(type, cost) {
+  if (currentUser && (currentUser.coins_balance || 0) < cost) {
+    showToast('🪙 رصيدك غير كافٍ — اشترِ كوينز أو شاهد إعلاناً');
+    return;
+  }
+  showToast(`🌹 أرسلت ${type} بـ ${cost} كوينز!`);
+}
+
+function redeemDiscount(brand, cost, value) {
+  if (currentUser && (currentUser.coins_balance || 0) < cost) {
+    showToast('🪙 رصيدك غير كافٍ');
+    return;
+  }
+  showToast(`🏷️ كوبون ${brand} — ${value} تم الاسترداد!`);
+}
+
+// ── Toast ──
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>

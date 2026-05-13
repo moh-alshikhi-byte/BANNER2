@@ -542,13 +542,13 @@ async function loadDashboard(authUser) {
   const navGrid = document.getElementById('navGrid');
   const navItems = profile.role === 'creator' ? [
     { icon: '📊', label: 'لوحة المنشئ' },
-    { icon: '◻', label: 'بنراتي' },
+    { icon: '📢', label: 'بنراتي' },
     { icon: '▶', label: 'محتواي' },
     { icon: '🪙', label: 'CoinStation' },
   ] : profile.role === 'advertiser' ? [
     { icon: '📈', label: 'حملاتي' },
     { icon: '🔍', label: 'المنشئون' },
-    { icon: '◻', label: 'احجز بنر' },
+    { icon: '🎯', label: 'احجز بنر' },
     { icon: '🪙', label: 'CoinStation' },
   ] : [
     { icon: '🏠', label: 'الرئيسية' },

@@ -16,8 +16,8 @@
   --gray: #888;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Cairo', sans-serif; background: #000; color: var(--text); min-height: 100vh; padding-bottom: 80px; display: flex; justify-content: center; }
-.page-wrap { width: 100%; max-width: 480px; background: var(--black); min-height: 100vh; position: relative; }
+body { font-family: 'Cairo', sans-serif; background: var(--black); color: var(--text); min-height: 100vh; padding-bottom: 80px; }
+
 
 /* Header */
 .header {
@@ -284,7 +284,6 @@ body { font-family: 'Cairo', sans-serif; background: #000; color: var(--text); m
 </style>
 </head>
 <body>
-<div class="page-wrap">
 <div class="toast" id="toast"></div>
 
 <!-- Header -->
@@ -640,6 +639,5 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove('show'), 2500);
 }
 </script>
-</div>
 </body>
 </html>

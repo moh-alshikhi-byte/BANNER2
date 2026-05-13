@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Bannr — بث مباشر</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
+:root {
+  --red: #FE2C55; --gold: #C9A84C;
+  --black: #0A0A0A; --card: #161616; --text: #F5F0E8; --gray: #888;
+  --green: #10B981; --live: #FF3B30;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body { font-family: 'Cairo', sans-serif; background: var(--black); color: var(--text); height: 100vh; overflow: hidden; user-select: none; }
+
+/* ── شاشة البث ── */
+.stream-screen {
+  position: relative; width: 100%; height: 100vh;
+  background: linear-gradient(135deg, #0d0d1a, #1a0d0d);
+  overflow: hidden;
+}
+.stream-bg {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 120px; opacity: 0.08;
+}
+
+/* ── تدرج الخلفية ── */
+.stream-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(0,0,0,0.5) 0%,
+    transparent 25%,
+    transparent 55%,
+    rgba(0,0,0,0.7) 80%,
+    rgba(0,0,0,0.95) 100%
+  );
+}
+
+/* ── شريط علوي ── */
+.topbar {
+  position: absolute; top: 0; left: 0; right: 0;
+  padding: 14px 16px;
+  display: flex; align-items: center; gap: 10px; z-index: 20;
+}
+.back-btn {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(255,255,255,0.1); backdrop-filter: blur(8px);
+  border: none; color: var(--text); font-size: 18px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.creator-pill {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(0,0,0,0.5); backdrop-filter: blur(8px);
+  border-radius: 20px; padding: 6px 12px 6px 6px;
+  flex: 1;
+}
+.creator-pill-avatar {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--red), #ff8c42);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; flex-shrink: 0;
+}
+.creator-pill-name { font-size: 13px; font-weight: 700; flex: 1; }
+.follow-pill-btn {
+  padding: 4px 12px; border-radius: 12px;
+  background: var(--red); border: none;
+  color: white; font-size: 11px; font-weight: 700;
+  cursor: pointer; font-family: 'Cairo', sans-serif;
+}
+.live-badge {
+  display: flex; align-items: center; gap: 5px;
+  background: var(--live); border-radius: 8px;
+  padding: 5px 10px;
+}
+.live-dot { width: 6px; height: 6px; border-radius: 50%; background: white; animation: livePulse 1s infinite; }
+@keyframes livePulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.live-text { font-size: 12px; font-weight: 700; color: white; }
+.viewers-badge {
+  display: flex; align-items: center; gap: 5px;
+  background: rgba(0,0,0,0.5); backdrop-filter: blur(8px);
+  border-radius: 8px; padding: 5px 10px;
+}
+.viewers-text { font-size: 12px; font-weight: 600; }
+
+/* ── البنر الإعلاني ── */
+.banner-zone {
+  position: absolute; top: 76px; left: 12px; right: 12px; z-index: 10;
+}
+.banner-ad {
+  background: rgba(10,10,10,0.85); backdrop-filter: blur(12px);
+  border: 1px solid rgba(201,168,76,0.3); border-radius: 12px;
+  padding: 10px 14px; display: flex; align-items: center; gap: 10px;
+  cursor: pointer;
+}
+.banner-ad-icon {
+  width: 36px; height: 36px; border-radius: 8px;
+  background: linear-gradient(135deg, var(--gold), #e8c96b);
+  display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;
+}
+.banner-ad-title { font-size: 13px; font-weight: 700; }
+.banner-ad-sub { font-size: 11px; color: var(--gold); margin-top: 1px; }
+.banner-badge { font-size: 9px; color: var(--gold); border: 1px solid rgba(201,168,76,0.4); border-radius: 4px; padding: 2px 5px; }
+
+/* ── الورود المتطايرة ── */
+.rose-fly {
+  position: absolute; font-size: 24px; pointer-events: none; z-index: 30;
+  animation: roseFly 2.5s ease-out forwards;
+}
+@keyframes roseFly {
+  0% { transform: translateY(0) scale(1); opacity: 1; }
+  100% { transform: translateY(-300px) scale(0.3) rotate(20deg); opacity: 0; }
+}
+
+/* ── تعليقات ── */
+.comments-zone {
+  position: absolute; bottom: 180px; left: 12px; right: 80px; z-index: 10;
+  display: flex; flex-direction: column; gap: 6px;
+  max-height: 200px; overflow: hidden;
+}
+.comment-item {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(0,0,0,0.5); backdrop-filter: blur(8px);
+  border-radius: 20px; padding: 6px 12px;
+  max-width: 100%; animation: commentIn 0.3s ease-out;
+}
+@keyframes commentIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+.comment-avatar {
+  width: 22px; height: 22px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; flex-shrink: 0;
+}
+.comment-name { font-size: 12px; font-weight: 700; color: var(--gold); flex-shrink: 0; }
+.comment-text { font-size: 12px; color: rgba(255,255,255,0.85); }
+
+/* ── أزرار جانبية ── */
+.side-actions {
+  position: absolute; bottom: 180px; left: 12px; z-index: 10;
+  display: flex; flex-direction: column; gap: 16px; align-items: center;
+}
+.side-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  cursor: pointer; border: none; background: none; color: var(--text);
+}
+.side-icon {
+  width: 48px; height: 48px; border-radius: 50%;
+  background: rgba(255,255,255,0.1); backdrop-filter: blur(8px);
+  display: flex; align-items: center; justify-content: center; font-size: 22px;
+  transition: transform 0.2s;
+}
+.side-btn:active .side-icon { transform: scale(0.9); }
+.side-count { font-size: 11px; font-weight: 600; }
+
+/* ── شريط الإدخال السفلي ── */
+.input-bar {
+  position: absolute; bottom: 0; left: 0; right: 0; z-index: 20;
+  padding: 12px 16px 28px;
+  background: linear-gradient(transparent, rgba(0,0,0,0.9));
+}
+.input-row { display: flex; align-items: center; gap: 10px; }
+.chat-input {
+  flex: 1; padding: 10px 16px;
+  background: rgba(255,255,255,0.1); backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.1); border-radius: 24px;
+  color: var(--text); font-size: 14px; font-family: 'Cairo', sans-serif;
+  outline: none;
+}
+.chat-input::placeholder { color: rgba(255,255,255,0.4); }
+.rose-btn {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--red), #ff6b6b);
+  border: none; font-size: 20px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 16px rgba(254,44,85,0.4);
+}
+.share-btn-bottom {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: rgba(255,255,255,0.1); backdrop-filter: blur(8px);
+  border: none; color: var(--text); font-size: 18px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+
+/* ── إحصاءات الورود ── */
+.roses-counter {
+  position: absolute; top: 76px; left: 12px; z-index: 20;
+  background: rgba(254,44,85,0.15); backdrop-filter: blur(8px);
+  border: 1px solid rgba(254,44,85,0.2);
+  border-radius: 12px; padding: 6px 12px;
+  display: flex; align-items: center; gap: 6px;
+  display: none;
+}
+.roses-counter.visible { display: flex; }
+.roses-num { font-size: 14px; font-weight: 700; color: var(--red); }
+
+/* ── Toast ── */
+.toast {
+  position: fixed; top: 70px; left: 50%;
+  transform: translateX(-50%) translateY(-60px);
+  background: var(--card); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 20px; padding: 8px 16px;
+  font-size: 13px; font-weight: 600; z-index: 999;
+  transition: transform 0.3s; white-space: nowrap;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<div class="stream-screen">
+  <!-- خلفية البث -->
+  <div class="stream-bg">🎥</div>
+  <div class="stream-overlay"></div>
+
+  <!-- شريط علوي -->
+  <div class="topbar">
+    <button class="back-btn" onclick="window.location.href='bannr_feed.html'">✕</button>
+    <div class="creator-pill">
+      <div class="creator-pill-avatar">م</div>
+      <div class="creator-pill-name">@محمد_الشيخي</div>
+      <button class="follow-pill-btn" onclick="toggleFollow(this)">+ تابع</button>
+    </div>
+    <div class="live-badge">
+      <div class="live-dot"></div>
+      <div class="live-text">LIVE</div>
+    </div>
+    <div class="viewers-badge">
+      <span>👁</span>
+      <span class="viewers-text" id="viewerCount">4,821</span>
+    </div>
+  </div>
+
+  <!-- بنر إعلاني -->
+  <div class="banner-zone">
+    <div class="banner-ad" onclick="showToast('🔗 فتح إعلان Samsung')">
+      <div class="banner-ad-icon">📱</div>
+      <div style="flex:1">
+        <div class="banner-ad-title">Samsung Galaxy S25 Ultra</div>
+        <div class="banner-ad-sub">احصل على خصم 15% — اليوم فقط</div>
+      </div>
+      <div class="banner-badge">إعلان</div>
+    </div>
+  </div>
+
+  <!-- تعليقات -->
+  <div class="comments-zone" id="commentsZone">
+    <div class="comment-item">
+      <div class="comment-avatar" style="background:linear-gradient(135deg,#2196F3,#0d47a1)">خ</div>
+      <span class="comment-name">خالد</span>
+      <span class="comment-text">ماشاء الله محتوى رائع! 🔥</span>
+    </div>
+    <div class="comment-item">
+      <div class="comment-avatar" style="background:linear-gradient(135deg,#00C851,#00960d)">س</div>
+      <span class="comment-name">سارة</span>
+      <span class="comment-text">🌹🌹🌹</span>
+    </div>
+    <div class="comment-item">
+      <div class="comment-avatar" style="background:linear-gradient(135deg,#9C27B0,#4A148C)">ن</div>
+      <span class="comment-name">نور</span>
+      <span class="comment-text">أول مرة أشاهد البث 😍</span>
+    </div>
+  </div>
+
+  <!-- أزرار جانبية -->
+  <div class="side-actions" style="bottom:180px; right:12px; left:auto">
+    <button class="side-btn" onclick="sendRose()">
+      <div class="side-icon">🌹</div>
+      <span class="side-count" id="roseCount">1.2K</span>
+    </button>
+    <button class="side-btn" onclick="showToast('💬 فتح التعليقات')">
+      <div class="side-icon">💬</div>
+      <span class="side-count">847</span>
+    </button>
+    <button class="side-btn" onclick="showToast('↗️ تمت المشاركة')">
+      <div class="side-icon">↗️</div>
+      <span class="side-count">مشاركة</span>
+    </button>
+  </div>
+
+  <!-- شريط الإدخال -->
+  <div class="input-bar">
+    <div class="input-row">
+      <input class="chat-input" type="text" placeholder="اكتب تعليقاً..." id="chatInput" onkeydown="sendComment(event)">
+      <button class="rose-btn" onclick="sendRose()">🌹</button>
+      <button class="share-btn-bottom" onclick="showToast('↗️ تمت المشاركة')">↗️</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const sb = supabase.createClient(
+  'https://mmodkjefxhajmcukrplk.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tb2RramVmeGhham1jdWtycGxrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczMDYyNTIsImV4cCI6MjA5Mjg4MjI1Mn0.gsED9FljH1wlNxiwD6LM4mxlSibua3uPkr1G3JIm_nU'
+);
+
+let roseCount = 1200;
+let viewerCount = 4821;
+
+// محاكاة زيادة المشاهدين
+setInterval(() => {
+  viewerCount += Math.floor(Math.random() * 10) - 3;
+  if (viewerCount < 0) viewerCount = 0;
+  document.getElementById('viewerCount').textContent = viewerCount.toLocaleString('ar');
+}, 3000);
+
+// تعليقات تلقائية
+const autoComments = [
+  { name: 'أحمد', color: 'linear-gradient(135deg,#FE2C55,#ff8c42)', initial: 'أ', text: 'هذا المحتوى يستحق 🔥' },
+  { name: 'فاطمة', color: 'linear-gradient(135deg,#E91E63,#880E4F)', initial: 'ف', text: '🌹🌹 أرسلت وردة!' },
+  { name: 'عمر', color: 'linear-gradient(135deg,#FF9800,#E65100)', initial: 'ع', text: 'متابع من الرياض 👋' },
+  { name: 'ليلى', color: 'linear-gradient(135deg,#00BCD4,#006064)', initial: 'ل', text: 'استمر يا بطل 💪' },
+  { name: 'يوسف', color: 'linear-gradient(135deg,#4CAF50,#1B5E20)', initial: 'ي', text: 'محتوى قوي جداً!' },
+];
+
+setInterval(() => {
+  const c = autoComments[Math.floor(Math.random() * autoComments.length)];
+  addComment(c.name, c.color, c.initial, c.text);
+}, 4000);
+
+function addComment(name, color, initial, text) {
+  const zone = document.getElementById('commentsZone');
+  const item = document.createElement('div');
+  item.className = 'comment-item';
+  item.innerHTML = `
+    <div class="comment-avatar" style="background:${color}">${initial}</div>
+    <span class="comment-name">${name}</span>
+    <span class="comment-text">${text}</span>
+  `;
+  zone.appendChild(item);
+  if (zone.children.length > 5) zone.removeChild(zone.children[0]);
+  zone.scrollTop = zone.scrollHeight;
+}
+
+function sendComment(e) {
+  if (e.key !== 'Enter') return;
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (!text) return;
+  addComment('أنت', 'linear-gradient(135deg,var(--red),#ff8c42)', 'أ', text);
+  input.value = '';
+}
+
+function sendRose() {
+  roseCount++;
+  document.getElementById('roseCount').textContent = roseCount > 999 ? (roseCount/1000).toFixed(1) + 'K' : roseCount;
+  // وردة متطايرة
+  const rose = document.createElement('div');
+  rose.className = 'rose-fly';
+  rose.textContent = '🌹';
+  rose.style.left = (20 + Math.random() * 60) + '%';
+  rose.style.bottom = '180px';
+  document.body.appendChild(rose);
+  setTimeout(() => rose.remove(), 2500);
+  showToast('🌹 أرسلت وردة! +1 للمنشئ');
+}
+
+function toggleFollow(btn) {
+  if (btn.textContent === '+ تابع') {
+    btn.textContent = '✓ تتابعه';
+    btn.style.background = 'rgba(255,255,255,0.15)';
+    showToast('✓ بدأت متابعة @محمد_الشيخي');
+  } else {
+    btn.textContent = '+ تابع';
+    btn.style.background = 'var(--red)';
+  }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+window.addEventListener('load', async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) window.location.href = 'bannr_auth.html';
+});
+</script>
+</body>
+</html>

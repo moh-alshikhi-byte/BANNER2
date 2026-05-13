@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Bannr — سجل أو ادخل</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, 'Segoe UI', Arial, sans-serif;
+  background: #0A0A0A;
+  color: #F5F0E8;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.logo {
+  font-size: 48px;
+  font-weight: 900;
+  color: #FE2C55;
+  margin-bottom: 6px;
+  letter-spacing: -2px;
+}
+.logo-sub {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 36px;
+  text-align: center;
+}
+
+.card {
+  background: #161616;
+  border: 1px solid #222;
+  border-radius: 20px;
+  padding: 28px 24px;
+  width: 100%;
+  max-width: 380px;
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  background: #0A0A0A;
+  border-radius: 12px;
+  padding: 4px;
+  margin-bottom: 24px;
+  gap: 4px;
+}
+.tab {
+  flex: 1;
+  padding: 10px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 9px;
+  cursor: pointer;
+  color: #666;
+  transition: all 0.2s;
+  font-family: inherit;
+  border: none;
+  background: transparent;
+}
+.tab.active {
+  background: #FE2C55;
+  color: #fff;
+}
+
+/* Role selector */
+.role-title {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 8px;
+}
+.roles {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.role-btn {
+  flex: 1;
+  padding: 10px 6px;
+  border-radius: 10px;
+  border: 1.5px solid #333;
+  background: transparent;
+  color: #888;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+.role-btn.active {
+  border-color: #FE2C55;
+  color: #FE2C55;
+  background: rgba(254,44,85,0.08);
+}
+.role-icon { font-size: 18px; display: block; margin-bottom: 4px; }
+
+/* Form */
+.field { margin-bottom: 16px; }
+.field label {
+  display: block;
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 6px;
+}
+.field input {
+  width: 100%;
+  background: #0A0A0A;
+  border: 1.5px solid #2A2A2A;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 15px;
+  color: #F5F0E8;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.field input:focus { border-color: #FE2C55; }
+.field input::placeholder { color: #444; }
+
+/* Submit button */
+.submit-btn {
+  width: 100%;
+  padding: 14px;
+  background: #FE2C55;
+  border: none;
+  border-radius: 12px;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: opacity 0.2s, transform 0.1s;
+  margin-top: 4px;
+}
+.submit-btn:hover { opacity: 0.88; }
+.submit-btn:active { transform: scale(0.98); }
+.submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Message */
+.msg {
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  text-align: center;
+  display: none;
+}
+.msg.success { background: rgba(16,185,129,0.12); color: #10B981; border: 1px solid rgba(16,185,129,0.2); }
+.msg.error { background: rgba(254,44,85,0.12); color: #FE2C55; border: 1px solid rgba(254,44,85,0.2); }
+.msg.show { display: block; }
+
+/* Coins welcome badge */
+.welcome-coins {
+  background: rgba(201,168,76,0.1);
+  border: 1px solid rgba(201,168,76,0.25);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 12px;
+  color: #C9A84C;
+  text-align: center;
+  margin-bottom: 18px;
+}
+
+/* Loading spinner */
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  vertical-align: middle;
+  margin-left: 6px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Dashboard preview after login */
+.dashboard {
+  display: none;
+  width: 100%;
+  max-width: 380px;
+}
+.dashboard.show { display: block; }
+.dash-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+.dash-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #FE2C55, #ff8c42);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  font-weight: 700;
+  margin: 0 auto 12px;
+}
+.dash-name { font-size: 20px; font-weight: 700; }
+.dash-handle { font-size: 13px; color: #666; margin-top: 3px; }
+.dash-role {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.role-creator { background: rgba(254,44,85,0.15); color: #FE2C55; }
+.role-advertiser { background: rgba(15,148,136,0.15); color: #0F9488; }
+.role-user { background: rgba(201,168,76,0.15); color: #C9A84C; }
+
+.dash-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.stat-box {
+  background: #161616;
+  border: 1px solid #222;
+  border-radius: 12px;
+  padding: 14px;
+  text-align: center;
+}
+.stat-val { font-size: 24px; font-weight: 700; color: #FE2C55; }
+.stat-lbl { font-size: 11px; color: #666; margin-top: 3px; }
+
+.nav-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.nav-btn {
+  background: #161616;
+  border: 1px solid #222;
+  border-radius: 12px;
+  padding: 16px 10px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  font-family: inherit;
+  color: #F5F0E8;
+  text-decoration: none;
+  display: block;
+}
+.nav-btn:hover { border-color: #FE2C55; }
+.nav-btn-icon { font-size: 24px; display: block; margin-bottom: 6px; }
+.nav-btn-lbl { font-size: 12px; font-weight: 500; }
+
+.logout-btn {
+  width: 100%;
+  padding: 12px;
+  background: transparent;
+  border: 1.5px solid #333;
+  border-radius: 12px;
+  color: #666;
+  font-size: 14px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+.logout-btn:hover { border-color: #FE2C55; color: #FE2C55; }
+
+.card.hide { display: none; }
+</style>
+</head>
+<body>
+
+<div class="logo">Bannr</div>
+<div class="logo-sub">your banner. your income.</div>
+
+<!-- Auth Card -->
+<div class="card" id="authCard">
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('login')">دخول</button>
+    <button class="tab" onclick="switchTab('signup')">حساب جديد</button>
+  </div>
+
+  <!-- LOGIN FORM -->
+  <div id="loginForm">
+    <div class="field">
+      <label>البريد الإلكتروني</label>
+      <input type="email" id="loginEmail" placeholder="example@email.com">
+    </div>
+    <div class="field">
+      <label>كلمة المرور</label>
+      <input type="password" id="loginPassword" placeholder="••••••••">
+    </div>
+    <button class="submit-btn" onclick="handleLogin()">دخول</button>
+    <div class="msg" id="loginMsg"></div>
+  </div>
+
+  <!-- SIGNUP FORM -->
+  <div id="signupForm" style="display:none;">
+    <div class="welcome-coins">🎁 كل حساب جديد يحصل على 50 كوين مجاناً!</div>
+
+    <div class="role-title">أنا...</div>
+    <div class="roles">
+      <button class="role-btn active" onclick="selectRole('creator', this)">
+        <span class="role-icon">🎬</span>منشئ محتوى
+      </button>
+      <button class="role-btn" onclick="selectRole('advertiser', this)">
+        <span class="role-icon">📢</span>معلن
+      </button>
+      <button class="role-btn" onclick="selectRole('user', this)">
+        <span class="role-icon">👤</span>مستخدم
+      </button>
+    </div>
+
+    <div class="field">
+      <label>الاسم الكامل</label>
+      <input type="text" id="signupName" placeholder="محمد الأحمد">
+    </div>
+    <div class="field">
+      <label>اسم المستخدم</label>
+      <input type="text" id="signupHandle" placeholder="@username" oninput="formatHandle(this)">
+    </div>
+    <div class="field">
+      <label>البريد الإلكتروني</label>
+      <input type="email" id="signupEmail" placeholder="example@email.com">
+    </div>
+    <div class="field">
+      <label>كلمة المرور</label>
+      <input type="password" id="signupPassword" placeholder="6 أحرف على الأقل">
+    </div>
+
+    <button class="submit-btn" onclick="handleSignup()">إنشاء الحساب</button>
+    <div class="msg" id="signupMsg"></div>
+  </div>
+
+</div>
+
+<!-- Dashboard (shown after login) -->
+<div class="dashboard" id="dashboard">
+  <div class="dash-header">
+    <div class="dash-avatar" id="dashAvatar">؟</div>
+    <div class="dash-name" id="dashName">مرحباً!</div>
+    <div class="dash-handle" id="dashHandle">@username</div>
+    <span class="dash-role" id="dashRole">مستخدم</span>
+  </div>
+
+  <div class="dash-stats">
+    <div class="stat-box">
+      <div class="stat-val" id="dashCoins">0</div>
+      <div class="stat-lbl">كوينز 🪙</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val" id="dashEarnings">0</div>
+      <div class="stat-lbl">ريال مكتسب</div>
+    </div>
+  </div>
+
+  <div class="nav-grid" id="navGrid">
+    <!-- filled dynamically -->
+  </div>
+
+  <button class="logout-btn" onclick="handleLogout()">تسجيل الخروج</button>
+</div>
+
+<script>
+// ── Supabase Init ──
+const SUPABASE_URL = 'https://mmodkjefxhajmcukrplk.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tb2RramVmeGhham1jdWtycGxrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczMDYyNTIsImV4cCI6MjA5Mjg4MjI1Mn0.gsED9FljH1wlNxiwD6LM4mxlSibua3uPkr1G3JIm_nU';
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let selectedRole = 'creator';
+let currentUser = null;
+
+// ── Tab switch ──
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    t.classList.toggle('active', (i === 0 && tab === 'login') || (i === 1 && tab === 'signup'));
+  });
+  document.getElementById('loginForm').style.display = tab === 'login' ? 'block' : 'none';
+  document.getElementById('signupForm').style.display = tab === 'signup' ? 'block' : 'none';
+}
+
+// ── Role select ──
+function selectRole(role, el) {
+  selectedRole = role;
+  document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ── Format handle ──
+function formatHandle(input) {
+  let val = input.value.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase();
+  input.value = val ? '@' + val.replace(/^@+/, '') : '';
+}
+
+// ── Show message ──
+function showMsg(id, text, type) {
+  const el = document.getElementById(id);
+  el.textContent = text;
+  el.className = 'msg ' + type + ' show';
+}
+
+// ── LOGIN ──
+async function handleLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  if (!email || !password) return showMsg('loginMsg', 'يرجى ملء جميع الحقول', 'error');
+
+  const btn = document.querySelector('#loginForm .submit-btn');
+  btn.innerHTML = 'جاري الدخول <span class="spinner"></span>';
+  btn.disabled = true;
+
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+
+  if (error) {
+    showMsg('loginMsg', 'بيانات خاطئة — تأكد من الإيميل وكلمة المرور', 'error');
+    btn.innerHTML = 'دخول';
+    btn.disabled = false;
+    return;
+  }
+
+  await loadDashboard(data.user);
+}
+
+// ── SIGNUP ──
+async function handleSignup() {
+  const name = document.getElementById('signupName').value.trim();
+  const handle = document.getElementById('signupHandle').value.replace('@', '').trim();
+  const email = document.getElementById('signupEmail').value.trim();
+  const password = document.getElementById('signupPassword').value;
+
+  if (!name || !handle || !email || !password) return showMsg('signupMsg', 'يرجى ملء جميع الحقول', 'error');
+  if (password.length < 6) return showMsg('signupMsg', 'كلمة المرور يجب أن تكون 6 أحرف على الأقل', 'error');
+
+  const btn = document.querySelector('#signupForm .submit-btn');
+  btn.innerHTML = 'جاري الإنشاء <span class="spinner"></span>';
+  btn.disabled = true;
+
+  // Sign up with Supabase Auth
+  const { data: authData, error: authError } = await sb.auth.signUp({ email, password });
+
+  if (authError) {
+    showMsg('signupMsg', authError.message === 'User already registered' ? 'هذا الإيميل مسجل مسبقاً' : authError.message, 'error');
+    btn.innerHTML = 'إنشاء الحساب';
+    btn.disabled = false;
+    return;
+  }
+
+  // Insert user profile
+  const { error: profileError } = await sb.from('users').insert({
+    id: authData.user.id,
+    email,
+    name,
+    handle,
+    role: selectedRole,
+    coins_balance: 50,
+  });
+
+  if (profileError && !profileError.message.includes('duplicate')) {
+    console.warn('Profile insert warning:', profileError.message);
+  }
+
+  // If creator — create creator_profiles row
+  if (selectedRole === 'creator') {
+    await sb.from('creator_profiles').insert({
+      user_id: authData.user.id,
+      banner_count: 1,
+      banner1_price: 0,
+      banner1_duration_type: 'weekly',
+      banner1_status: 'available',
+    });
+  }
+
+  // Give welcome coins transaction
+  await sb.from('coins_transactions').insert({
+    user_id: authData.user.id,
+    amount: 50,
+    type: 'earned',
+    source: 'welcome_bonus',
+    description: 'مرحباً بك في Bannr! 🎁',
+  });
+
+  showMsg('signupMsg', '✓ تم إنشاء حسابك! جاري الدخول...', 'success');
+
+  setTimeout(async () => {
+    const { data: loginData } = await sb.auth.signInWithPassword({ email, password });
+    if (loginData?.user) await loadDashboard(loginData.user);
+  }, 1200);
+}
+
+// ── LOAD DASHBOARD ──
+async function loadDashboard(authUser) {
+  // Get user profile
+  const { data: profile } = await sb.from('users').select('*').eq('id', authUser.id).single();
+
+  if (!profile) {
+    showMsg('loginMsg', 'حدث خطأ في تحميل الملف الشخصي', 'error');
+    document.querySelector('#loginForm .submit-btn').innerHTML = 'دخول';
+    document.querySelector('#loginForm .submit-btn').disabled = false;
+    return;
+  }
+
+  currentUser = profile;
+
+  // Show dashboard
+  document.getElementById('authCard').classList.add('hide');
+  document.getElementById('dashboard').classList.add('show');
+
+  // Fill dashboard
+  document.getElementById('dashAvatar').textContent = profile.name ? profile.name[0] : '؟';
+  document.getElementById('dashName').textContent = 'أهلاً، ' + (profile.name || 'مستخدم') + ' 👋';
+  document.getElementById('dashHandle').textContent = '@' + (profile.handle || '---');
+  document.getElementById('dashCoins').textContent = (profile.coins_balance || 0).toLocaleString('ar-SA');
+
+  // Role badge
+  const roleEl = document.getElementById('dashRole');
+  const roleMap = {
+    creator: { label: '🎬 منشئ محتوى', cls: 'role-creator' },
+    advertiser: { label: '📢 معلن', cls: 'role-advertiser' },
+    user: { label: '👤 مستخدم', cls: 'role-user' }
+  };
+  const r = roleMap[profile.role] || roleMap.user;
+  roleEl.textContent = r.label;
+  roleEl.className = 'dash-role ' + r.cls;
+
+  // Earnings
+  if (profile.role === 'creator') {
+    const { data: cp } = await sb.from('creator_profiles').select('total_earnings').eq('user_id', profile.id).single();
+    document.getElementById('dashEarnings').textContent = (cp?.total_earnings || 0).toLocaleString('ar-SA');
+  }
+
+  // Nav buttons
+  const navGrid = document.getElementById('navGrid');
+  const navItems = profile.role === 'creator' ? [
+    { icon: '📊', label: 'لوحة المنشئ',  url: 'bannr_dashboard-٢.html' },
+    { icon: '◻',  label: 'بنراتي',       url: 'bannr_creator-٢.html' },
+    { icon: '▶',  label: 'محتواي',       url: 'bannr_feed-٢.html' },
+    { icon: '🪙', label: 'CoinStation',   url: 'bannr_coinstation-٢.html' },
+  ] : profile.role === 'advertiser' ? [
+    { icon: '📈', label: 'حملاتي',       url: 'bannr_advertiser-٢.html' },
+    { icon: '🔍', label: 'المنشئون',     url: 'bannr_explore-٢.html' },
+    { icon: '◻',  label: 'احجز بنر',    url: 'bannr_advertiser-٢.html' },
+    { icon: '🪙', label: 'CoinStation',  url: 'bannr_coinstation-٢.html' },
+  ] : [
+    { icon: '🏠', label: 'الرئيسية',    url: 'bannr_feed-٢.html' },
+    { icon: '🪙', label: 'CoinStation', url: 'bannr_coinstation-٢.html' },
+    { icon: '🌹', label: 'أرسل وردة',  url: 'bannr_live-٢.html' },
+    { icon: '💰', label: 'كوينزي',     url: 'bannr_coinstation-٢.html' },
+  ];
+
+  navGrid.innerHTML = navItems.map(n => `
+    <div class="nav-btn" onclick="window.location.href='${n.url}'" style="cursor:pointer">
+      <span class="nav-btn-icon">${n.icon}</span>
+      <span class="nav-btn-lbl">${n.label}</span>
+    </div>
+  `).join('');
+}
+
+// ── LOGOUT ──
+async function handleLogout() {
+  await sb.auth.signOut();
+  currentUser = null;
+  document.getElementById('authCard').classList.remove('hide');
+  document.getElementById('dashboard').classList.remove('show');
+  document.getElementById('loginEmail').value = '';
+  document.getElementById('loginPassword').value = '';
+}
+
+// ── Check if already logged in ──
+window.addEventListener('load', async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session?.user) {
+    await loadDashboard(session.user);
+  }
+});
+</script>
+</body>
+</html>

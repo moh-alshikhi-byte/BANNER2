@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Bannr — لوحة المنشئ</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
+:root {
+  --red: #FE2C55; --gold: #C9A84C;
+  --black: #0A0A0A; --card: #161616; --text: #F5F0E8; --gray: #888;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Cairo', sans-serif; background: var(--black); color: var(--text); padding-bottom: 80px; }
+
+/* Top */
+.topbar {
+  padding: 16px;
+  display: flex; align-items: center; justify-content: space-between;
+  background: rgba(10,10,10,0.95);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.topbar-title { font-size: 18px; font-weight: 700; }
+.notif-btn {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(255,255,255,0.06); border: none;
+  color: var(--text); font-size: 16px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* Earnings Card */
+.earnings-card {
+  margin: 16px;
+  background: linear-gradient(135deg, #1a0a0f, #0f0a1a);
+  border: 1px solid rgba(201,168,76,0.2);
+  border-radius: 20px;
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+}
+.earnings-card::before {
+  content: '';
+  position: absolute; top: -40px; left: -40px;
+  width: 120px; height: 120px;
+  background: radial-gradient(circle, rgba(254,44,85,0.15), transparent);
+  border-radius: 50%;
+}
+.earnings-label { font-size: 13px; color: var(--gray); }
+.earnings-value { font-size: 36px; font-weight: 900; color: var(--gold); margin: 4px 0; }
+.earnings-sub { font-size: 12px; color: rgba(255,255,255,0.5); }
+.earnings-row {
+  display: flex; gap: 12px; margin-top: 16px;
+}
+.earnings-mini {
+  flex: 1; background: rgba(255,255,255,0.05);
+  border-radius: 12px; padding: 12px;
+  text-align: center;
+}
+.earnings-mini-val { font-size: 18px; font-weight: 700; color: var(--text); }
+.earnings-mini-lbl { font-size: 11px; color: var(--gray); margin-top: 2px; }
+.withdraw-btn {
+  width: 100%; padding: 12px;
+  background: var(--gold); border: none; border-radius: 12px;
+  color: var(--black); font-size: 14px; font-weight: 700;
+  cursor: pointer; font-family: 'Cairo', sans-serif;
+  margin-top: 14px;
+}
+
+/* Section */
+.section { padding: 0 16px; margin-top: 20px; }
+.section-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px;
+}
+.section-title { font-size: 15px; font-weight: 700; }
+.section-link { font-size: 12px; color: var(--gold); cursor: pointer; }
+
+/* Banner Cards */
+.banner-card {
+  background: var(--card);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 10px;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.banner-card-header {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 12px;
+}
+.banner-num {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: rgba(254,44,85,0.15);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; color: var(--red);
+}
+.banner-card-title { font-size: 14px; font-weight: 700; flex: 1; }
+.status-badge {
+  font-size: 11px; font-weight: 600; padding: 3px 10px;
+  border-radius: 20px;
+}
+.status-badge.active { background: rgba(16,185,129,0.15); color: #10B981; }
+.status-badge.available { background: rgba(254,44,85,0.1); color: var(--gray); }
+
+.banner-card-stats {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 8px; margin-bottom: 12px;
+}
+.bcs { text-align: center; background: rgba(255,255,255,0.03); border-radius: 8px; padding: 8px 4px; }
+.bcs-val { font-size: 14px; font-weight: 700; }
+.bcs-lbl { font-size: 10px; color: var(--gray); }
+
+.banner-card-actions { display: flex; gap: 8px; }
+.bc-btn {
+  flex: 1; padding: 9px;
+  border-radius: 10px; border: none;
+  font-size: 12px; font-weight: 600;
+  cursor: pointer; font-family: 'Cairo', sans-serif;
+}
+.bc-btn.primary { background: var(--red); color: white; }
+.bc-btn.secondary { background: rgba(255,255,255,0.06); color: var(--text); }
+
+/* Requests */
+.request-item {
+  background: var(--card);
+  border-radius: 14px; padding: 14px;
+  margin-bottom: 8px;
+  display: flex; align-items: center; gap: 12px;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.req-icon {
+  width: 44px; height: 44px; border-radius: 10px;
+  background: rgba(201,168,76,0.1);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; flex-shrink: 0;
+}
+.req-info { flex: 1; min-width: 0; }
+.req-name { font-size: 14px; font-weight: 700; }
+.req-detail { font-size: 12px; color: var(--gray); margin-top: 2px; }
+.req-actions { display: flex; flex-direction: column; gap: 6px; }
+.req-accept {
+  padding: 6px 14px;
+  background: rgba(16,185,129,0.15); color: #10B981;
+  border: 1px solid rgba(16,185,129,0.2);
+  border-radius: 8px; font-size: 12px; font-weight: 600;
+  cursor: pointer; font-family: 'Cairo', sans-serif;
+}
+.req-reject {
+  padding: 6px 14px;
+  background: rgba(254,44,85,0.1); color: var(--red);
+  border: 1px solid rgba(254,44,85,0.15);
+  border-radius: 8px; font-size: 12px; font-weight: 600;
+  cursor: pointer; font-family: 'Cairo', sans-serif;
+}
+
+/* Chart */
+.chart-card {
+  background: var(--card);
+  border-radius: 16px; padding: 16px;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.chart-bars {
+  display: flex; align-items: flex-end;
+  gap: 6px; height: 80px; margin-top: 12px;
+}
+.chart-bar {
+  flex: 1; border-radius: 4px 4px 0 0;
+  background: rgba(254,44,85,0.3);
+  transition: height 0.5s;
+  position: relative;
+  cursor: pointer;
+}
+.chart-bar.highlight { background: var(--red); }
+.chart-labels {
+  display: flex; gap: 6px; margin-top: 6px;
+}
+.chart-label { flex: 1; text-align: center; font-size: 9px; color: var(--gray); }
+
+/* Bottom Nav */
+.bottombar {
+  position: fixed; bottom: 0; left: 0; right: 0; height: 64px;
+  background: rgba(10,10,10,0.95); backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255,255,255,0.06);
+  display: flex; align-items: center; justify-content: space-around; z-index: 100;
+}
+.nav-item {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  cursor: pointer; padding: 8px 16px; border: none; background: none;
+  color: var(--gray); font-family: 'Cairo', sans-serif;
+}
+.nav-item.active { color: var(--text); }
+.nav-icon { font-size: 20px; }
+.nav-label { font-size: 10px; font-weight: 600; }
+.nav-upload {
+  width: 48px; height: 48px; border-radius: 14px;
+  background: var(--red); border: none; color: white;
+  font-size: 22px; cursor: pointer;
+  box-shadow: 0 0 16px rgba(254,44,85,0.4);
+}
+
+/* Toast */
+.toast {
+  position: fixed; top: 16px; left: 50%;
+  transform: translateX(-50%) translateY(-60px);
+  background: var(--card); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 20px; padding: 8px 16px;
+  font-size: 13px; font-weight: 600;
+  z-index: 999; transition: transform 0.3s; white-space: nowrap;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<!-- Top Bar -->
+<div class="topbar">
+  <div class="topbar-title">📊 لوحة المنشئ</div>
+  <button class="notif-btn">🔔</button>
+</div>
+
+<!-- Earnings Card -->
+<div class="earnings-card">
+  <div class="earnings-label">إجمالي الأرباح</div>
+  <div class="earnings-value">1,847 ريال</div>
+  <div class="earnings-sub">هذا الشهر — مايو 2026</div>
+  <div class="earnings-row">
+    <div class="earnings-mini">
+      <div class="earnings-mini-val">3</div>
+      <div class="earnings-mini-lbl">بنرات نشطة</div>
+    </div>
+    <div class="earnings-mini">
+      <div class="earnings-mini-val">12</div>
+      <div class="earnings-mini-lbl">معلن هذا الشهر</div>
+    </div>
+    <div class="earnings-mini">
+      <div class="earnings-mini-val">80%</div>
+      <div class="earnings-mini-lbl">نسبتك</div>
+    </div>
+  </div>
+  <button class="withdraw-btn" onclick="showToast('💰 طلب سحب تم الإرسال!')">سحب الأرباح</button>
+</div>
+
+<!-- Chart -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-title">📈 أرباح الأسبوع</div>
+    <div class="section-link">تفاصيل</div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-bars" id="chartBars"></div>
+    <div class="chart-labels">
+      <div class="chart-label">أحد</div>
+      <div class="chart-label">اثنين</div>
+      <div class="chart-label">ثلاثاء</div>
+      <div class="chart-label">أربعاء</div>
+      <div class="chart-label">خميس</div>
+      <div class="chart-label">جمعة</div>
+      <div class="chart-label">سبت</div>
+    </div>
+  </div>
+</div>
+
+<!-- Banner Management -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-title">◻ إدارة البنرات</div>
+    <div class="section-link" onclick="showToast('إعدادات البنرات')">إعدادات</div>
+  </div>
+
+  <!-- بنر ١ -->
+  <div class="banner-card">
+    <div class="banner-card-header">
+      <div class="banner-num">١</div>
+      <div class="banner-card-title">بنر سامسونج Galaxy</div>
+      <span class="status-badge active">نشط</span>
+    </div>
+    <div class="banner-card-stats">
+      <div class="bcs">
+        <div class="bcs-val" style="color:var(--gold)">350 ريال</div>
+        <div class="bcs-lbl">الإيراد</div>
+      </div>
+      <div class="bcs">
+        <div class="bcs-val">2,847</div>
+        <div class="bcs-lbl">نقرة</div>
+      </div>
+      <div class="bcs">
+        <div class="bcs-val">8 أيام</div>
+        <div class="bcs-lbl">متبقي</div>
+      </div>
+    </div>
+    <div class="banner-card-actions">
+      <button class="bc-btn secondary" onclick="showToast('تفاصيل البنر')">التفاصيل</button>
+      <button class="bc-btn primary" onclick="showToast('تم تمديد البنر')">تمديد</button>
+    </div>
+  </div>
+
+  <!-- بنر ٢ -->
+  <div class="banner-card">
+    <div class="banner-card-header">
+      <div class="banner-num">٢</div>
+      <div class="banner-card-title">البنر الثاني</div>
+      <span class="status-badge available">متاح</span>
+    </div>
+    <div class="banner-card-stats">
+      <div class="bcs">
+        <div class="bcs-val" style="color:var(--gray)">—</div>
+        <div class="bcs-lbl">الإيراد</div>
+      </div>
+      <div class="bcs">
+        <div class="bcs-val" style="color:var(--gray)">—</div>
+        <div class="bcs-lbl">نقرة</div>
+      </div>
+      <div class="bcs">
+        <div class="bcs-val" style="color:var(--gray)">—</div>
+        <div class="bcs-lbl">متبقي</div>
+      </div>
+    </div>
+    <div class="banner-card-actions">
+      <button class="bc-btn secondary" onclick="showToast('ضبط السعر')">ضبط السعر</button>
+      <button class="bc-btn primary" onclick="showToast('تم نشر البنر للمعلنين')">نشر للمعلنين</button>
+    </div>
+  </div>
+
+  <!-- بنر ٣ -->
+  <div class="banner-card">
+    <div class="banner-card-header">
+      <div class="banner-num">٣</div>
+      <div class="banner-card-title">البنر الثالث</div>
+      <span class="status-badge available">متاح</span>
+    </div>
+    <div class="banner-card-stats">
+      <div class="bcs">
+        <div class="bcs-val" style="color:var(--gray)">—</div>
+        <div class="bcs-lbl">الإيراد</div>
+      </div>
+      <div class="bcs">
+        <div class="bcs-val" style="color:var(--gray)">—</div>
+        <div class="bcs-lbl">نقرة</div>
+      </div>
+      <div class="bcs">
+        <div class="bcs-val" style="color:var(--gray)">—</div>
+        <div class="bcs-lbl">متبقي</div>
+      </div>
+    </div>
+    <div class="banner-card-actions">
+      <button class="bc-btn secondary" onclick="showToast('ضبط السعر')">ضبط السعر</button>
+      <button class="bc-btn primary" onclick="showToast('تم نشر البنر للمعلنين')">نشر للمعلنين</button>
+    </div>
+  </div>
+</div>
+
+<!-- Requests -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-title">📬 طلبات إيجار جديدة</div>
+    <div class="section-link">الكل</div>
+  </div>
+
+  <div class="request-item">
+    <div class="req-icon">🛍️</div>
+    <div class="req-info">
+      <div class="req-name">نون للتسوق</div>
+      <div class="req-detail">أسبوع — البنر ٢ — 280 ريال</div>
+    </div>
+    <div class="req-actions">
+      <button class="req-accept" onclick="acceptRequest(this)">قبول</button>
+      <button class="req-reject" onclick="rejectRequest(this)">رفض</button>
+    </div>
+  </div>
+
+  <div class="request-item">
+    <div class="req-icon">🏋️</div>
+    <div class="req-info">
+      <div class="req-name">نادي الرياضة</div>
+      <div class="req-detail">شهر — البنر ٣ — 850 ريال</div>
+    </div>
+    <div class="req-actions">
+      <button class="req-accept" onclick="acceptRequest(this)">قبول</button>
+      <button class="req-reject" onclick="rejectRequest(this)">رفض</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Bottom Nav -->
+<div class="bottombar">
+  <button class="nav-item" onclick="window.location.href='bannr_feed.html'">
+    <div class="nav-icon">🏠</div>
+    <div class="nav-label">الرئيسية</div>
+  </button>
+  <button class="nav-item">
+    <div class="nav-icon">🔍</div>
+    <div class="nav-label">استكشاف</div>
+  </button>
+  <button class="nav-upload">＋</button>
+  <button class="nav-item active">
+    <div class="nav-icon">📊</div>
+    <div class="nav-label">لوحتي</div>
+  </button>
+  <button class="nav-item" onclick="window.location.href='bannr_creator.html'">
+    <div class="nav-icon">👤</div>
+    <div class="nav-label">بروفايلي</div>
+  </button>
+</div>
+
+<script>
+const sb = supabase.createClient(
+  'https://mmodkjefxhajmcukrplk.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tb2RramVmeGhham1jdWtycGxrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczMDYyNTIsImV4cCI6MjA5Mjg4MjI1Mn0.gsED9FljH1wlNxiwD6LM4mxlSibua3uPkr1G3JIm_nU'
+);
+
+// رسم الشارت
+const data = [120, 85, 210, 175, 290, 240, 180];
+const max = Math.max(...data);
+const bars = document.getElementById('chartBars');
+const today = new Date().getDay();
+
+data.forEach((val, i) => {
+  const bar = document.createElement('div');
+  bar.className = 'chart-bar' + (i === today ? ' highlight' : '');
+  bar.style.height = (val / max * 100) + '%';
+  bar.title = val + ' ريال';
+  bars.appendChild(bar);
+});
+
+function acceptRequest(btn) {
+  const item = btn.closest('.request-item');
+  const name = item.querySelector('.req-name').textContent;
+  item.style.opacity = '0.5';
+  item.style.pointerEvents = 'none';
+  showToast('✓ قبلت طلب ' + name);
+}
+
+function rejectRequest(btn) {
+  const item = btn.closest('.request-item');
+  item.remove();
+  showToast('تم رفض الطلب');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// التحقق من تسجيل الدخول
+window.addEventListener('load', async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) window.location.href = 'bannr_auth.html';
+});
+</script>
+</body>
+</html>

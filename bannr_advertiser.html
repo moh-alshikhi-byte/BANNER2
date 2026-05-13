@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Bannr — لوحة المعلن</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
+:root {
+  --red: #FE2C55; --gold: #C9A84C;
+  --black: #0A0A0A; --card: #161616; --text: #F5F0E8; --gray: #888;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Cairo', sans-serif; background: var(--black); color: var(--text); padding-bottom: 80px; }
+
+.topbar {
+  padding: 16px;
+  display: flex; align-items: center; justify-content: space-between;
+  background: rgba(10,10,10,0.95);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.topbar-title { font-size: 18px; font-weight: 700; }
+
+/* Budget Card */
+.budget-card {
+  margin: 16px;
+  background: linear-gradient(135deg, #0a0f1a, #0f0a1a);
+  border: 1px solid rgba(254,44,85,0.2);
+  border-radius: 20px; padding: 20px;
+}
+.budget-label { font-size: 13px; color: var(--gray); }
+.budget-value { font-size: 36px; font-weight: 900; color: var(--red); margin: 4px 0; }
+.budget-row { display: flex; gap: 12px; margin-top: 14px; }
+.budget-mini {
+  flex: 1; background: rgba(255,255,255,0.04);
+  border-radius: 12px; padding: 12px; text-align: center;
+}
+.budget-mini-val { font-size: 18px; font-weight: 700; }
+.budget-mini-lbl { font-size: 11px; color: var(--gray); margin-top: 2px; }
+.add-budget-btn {
+  width: 100%; padding: 12px;
+  background: var(--red); border: none; border-radius: 12px;
+  color: white; font-size: 14px; font-weight: 700;
+  cursor: pointer; font-family: 'Cairo', sans-serif; margin-top: 14px;
+}
+
+/* Search */
+.search-wrap { padding: 0 16px; margin-top: 16px; }
+.search-box {
+  width: 100%; padding: 12px 16px;
+  background: var(--card);
+  border: 1.5px solid rgba(255,255,255,0.08);
+  border-radius: 14px; color: var(--text);
+  font-size: 14px; font-family: 'Cairo', sans-serif; outline: none;
+}
+.search-box:focus { border-color: var(--red); }
+
+/* Filters */
+.filters {
+  display: flex; gap: 8px; padding: 12px 16px;
+  overflow-x: auto; scrollbar-width: none;
+}
+.filters::-webkit-scrollbar { display: none; }
+.filter-btn {
+  padding: 7px 16px;
+  border-radius: 20px; border: 1.5px solid rgba(255,255,255,0.1);
+  background: transparent; color: var(--gray);
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  white-space: nowrap; font-family: 'Cairo', sans-serif;
+  transition: all 0.2s;
+}
+.filter-btn.active {
+  background: rgba(254,44,85,0.15);
+  border-color: var(--red); color: var(--red);
+}
+
+/* Section */
+.section { padding: 0 16px; margin-top: 8px; }
+.section-title { font-size: 15px; font-weight: 700; margin-bottom: 12px; }
+
+/* Creator Card */
+.creator-card {
+  background: var(--card);
+  border-radius: 16px; padding: 16px;
+  margin-bottom: 10px;
+  border: 1px solid rgba(255,255,255,0.06);
+  cursor: pointer; transition: border-color 0.2s;
+}
+.creator-card:hover { border-color: rgba(201,168,76,0.3); }
+.creator-card-top {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 12px;
+}
+.creator-card-avatar {
+  width: 52px; height: 52px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; font-weight: 700; flex-shrink: 0;
+}
+.creator-card-info { flex: 1; }
+.creator-card-name { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 4px; }
+.creator-card-cat { font-size: 12px; color: var(--gray); margin-top: 2px; }
+.creator-card-price {
+  font-size: 14px; font-weight: 700; color: var(--gold);
+  background: rgba(201,168,76,0.1);
+  border-radius: 8px; padding: 4px 10px;
+}
+.creator-card-stats {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 8px; margin-bottom: 12px;
+}
+.ccs { text-align: center; }
+.ccs-val { font-size: 14px; font-weight: 700; }
+.ccs-lbl { font-size: 10px; color: var(--gray); }
+.creator-banners {
+  display: flex; gap: 8px; margin-bottom: 12px;
+}
+.banner-slot-indicator {
+  flex: 1; padding: 8px; border-radius: 8px;
+  text-align: center; font-size: 11px; font-weight: 600;
+}
+.banner-slot-indicator.taken {
+  background: rgba(254,44,85,0.1); color: var(--red);
+}
+.banner-slot-indicator.free {
+  background: rgba(16,185,129,0.1); color: #10B981;
+  cursor: pointer;
+}
+.rent-btn {
+  width: 100%; padding: 10px;
+  background: var(--red); border: none; border-radius: 10px;
+  color: white; font-size: 13px; font-weight: 700;
+  cursor: pointer; font-family: 'Cairo', sans-serif;
+}
+
+/* Active Campaigns */
+.campaign-item {
+  background: var(--card);
+  border-radius: 14px; padding: 14px;
+  margin-bottom: 8px; display: flex; align-items: center; gap: 12px;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.camp-icon {
+  width: 44px; height: 44px; border-radius: 10px;
+  background: rgba(254,44,85,0.1);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; flex-shrink: 0;
+}
+.camp-info { flex: 1; }
+.camp-name { font-size: 14px; font-weight: 700; }
+.camp-detail { font-size: 12px; color: var(--gray); margin-top: 2px; }
+.camp-stats { text-align: left; }
+.camp-clicks { font-size: 16px; font-weight: 700; color: var(--gold); }
+.camp-clicks-lbl { font-size: 10px; color: var(--gray); }
+
+/* Progress */
+.camp-progress {
+  width: 100%; height: 4px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 2px; margin-top: 8px; overflow: hidden;
+}
+.camp-progress-fill {
+  height: 100%; background: var(--gold); border-radius: 2px;
+}
+
+/* Bottom Nav */
+.bottombar {
+  position: fixed; bottom: 0; left: 0; right: 0; height: 64px;
+  background: rgba(10,10,10,0.95); backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255,255,255,0.06);
+  display: flex; align-items: center; justify-content: space-around; z-index: 100;
+}
+.nav-item {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  cursor: pointer; padding: 8px 16px; border: none; background: none;
+  color: var(--gray); font-family: 'Cairo', sans-serif;
+}
+.nav-item.active { color: var(--text); }
+.nav-icon { font-size: 20px; }
+.nav-label { font-size: 10px; font-weight: 600; }
+.nav-upload {
+  width: 48px; height: 48px; border-radius: 14px;
+  background: var(--red); border: none; color: white;
+  font-size: 22px; cursor: pointer;
+  box-shadow: 0 0 16px rgba(254,44,85,0.4);
+}
+
+/* Toast */
+.toast {
+  position: fixed; top: 16px; left: 50%;
+  transform: translateX(-50%) translateY(-60px);
+  background: var(--card); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 20px; padding: 8px 16px;
+  font-size: 13px; font-weight: 600;
+  z-index: 999; transition: transform 0.3s; white-space: nowrap;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<!-- Top Bar -->
+<div class="topbar">
+  <div class="topbar-title">📢 لوحة المعلن</div>
+  <div style="font-size:13px;color:var(--gold)">رصيدك: 500 ريال</div>
+</div>
+
+<!-- Budget -->
+<div class="budget-card">
+  <div class="budget-label">إجمالي الإنفاق الإعلاني</div>
+  <div class="budget-value">1,230 ريال</div>
+  <div style="font-size:12px;color:rgba(255,255,255,0.4)">هذا الشهر — مايو 2026</div>
+  <div class="budget-row">
+    <div class="budget-mini">
+      <div class="budget-mini-val" style="color:var(--gold)">14,720</div>
+      <div class="budget-mini-lbl">إجمالي النقرات</div>
+    </div>
+    <div class="budget-mini">
+      <div class="budget-mini-val">3</div>
+      <div class="budget-mini-lbl">حملات نشطة</div>
+    </div>
+    <div class="budget-mini">
+      <div class="budget-mini-val" style="color:#10B981">4.2%</div>
+      <div class="budget-mini-lbl">نسبة التحويل</div>
+    </div>
+  </div>
+  <button class="add-budget-btn" onclick="showToast('💳 إضافة رصيد — قريباً')">+ شحن الرصيد</button>
+</div>
+
+<!-- Active Campaigns -->
+<div class="section">
+  <div class="section-title">📊 حملاتي النشطة</div>
+
+  <div class="campaign-item">
+    <div class="camp-icon">📱</div>
+    <div class="camp-info">
+      <div class="camp-name">Galaxy S25 — بنر محمد</div>
+      <div class="camp-detail">7 أيام — ينتهي 15 مايو</div>
+      <div class="camp-progress"><div class="camp-progress-fill" style="width:60%"></div></div>
+    </div>
+    <div class="camp-stats">
+      <div class="camp-clicks">8,430</div>
+      <div class="camp-clicks-lbl">نقرة</div>
+    </div>
+  </div>
+
+  <div class="campaign-item">
+    <div class="camp-icon">👟</div>
+    <div class="camp-info">
+      <div class="camp-name">Nike Air Max — بنر خالد</div>
+      <div class="camp-detail">14 يوم — ينتهي 20 مايو</div>
+      <div class="camp-progress"><div class="camp-progress-fill" style="width:35%"></div></div>
+    </div>
+    <div class="camp-stats">
+      <div class="camp-clicks">4,290</div>
+      <div class="camp-clicks-lbl">نقرة</div>
+    </div>
+  </div>
+
+  <div class="campaign-item">
+    <div class="camp-icon">🛍️</div>
+    <div class="camp-info">
+      <div class="camp-name">نون — بنر سارة</div>
+      <div class="camp-detail">30 يوم — ينتهي 30 مايو</div>
+      <div class="camp-progress"><div class="camp-progress-fill" style="width:15%"></div></div>
+    </div>
+    <div class="camp-stats">
+      <div class="camp-clicks">2,000</div>
+      <div class="camp-clicks-lbl">نقرة</div>
+    </div>
+  </div>
+</div>
+
+<!-- Search Creators -->
+<div class="search-wrap" style="margin-top:20px">
+  <div style="font-size:15px;font-weight:700;margin-bottom:10px">🔍 ابحث عن منشئين</div>
+  <input class="search-box" type="text" placeholder="ابحث بالاسم أو التخصص..." oninput="filterCreators(this.value)">
+</div>
+
+<div class="filters">
+  <button class="filter-btn active" onclick="setFilter(this, 'all')">الكل</button>
+  <button class="filter-btn" onclick="setFilter(this, 'tech')">تقنية</button>
+  <button class="filter-btn" onclick="setFilter(this, 'food')">طعام</button>
+  <button class="filter-btn" onclick="setFilter(this, 'sport')">رياضة</button>
+  <button class="filter-btn" onclick="setFilter(this, 'fashion')">موضة</button>
+  <button class="filter-btn" onclick="setFilter(this, 'travel')">سفر</button>
+</div>
+
+<div class="section" id="creatorsList">
+
+  <div class="creator-card" data-cat="tech">
+    <div class="creator-card-top">
+      <div class="creator-card-avatar" style="background:linear-gradient(135deg,#FE2C55,#ff8c42)">م</div>
+      <div class="creator-card-info">
+        <div class="creator-card-name">محمد الشيخي <span style="font-size:10px;background:rgba(254,44,85,0.15);color:var(--red);padding:2px 6px;border-radius:4px">تقنية</span></div>
+        <div class="creator-card-cat">128K متابع • 2.4M إعجاب</div>
+      </div>
+      <div class="creator-card-price">من 150 ريال</div>
+    </div>
+    <div class="creator-card-stats">
+      <div class="ccs"><div class="ccs-val">128K</div><div class="ccs-lbl">متابع</div></div>
+      <div class="ccs"><div class="ccs-val">4.8%</div><div class="ccs-lbl">تفاعل</div></div>
+      <div class="ccs"><div class="ccs-val">2,847</div><div class="ccs-lbl">نقرة/بنر</div></div>
+    </div>
+    <div class="creator-banners">
+      <div class="banner-slot-indicator taken">بنر ١ — مأخوذ</div>
+      <div class="banner-slot-indicator free" onclick="bookBanner('محمد', 2)">بنر ٢ — متاح ✓</div>
+      <div class="banner-slot-indicator free" onclick="bookBanner('محمد', 3)">بنر ٣ — متاح ✓</div>
+    </div>
+    <button class="rent-btn" onclick="bookBanner('محمد', 2)">احجز بنر الآن</button>
+  </div>
+
+  <div class="creator-card" data-cat="food">
+    <div class="creator-card-top">
+      <div class="creator-card-avatar" style="background:linear-gradient(135deg,#00C851,#00960d)">س</div>
+      <div class="creator-card-info">
+        <div class="creator-card-name">سارة المطبخ <span style="font-size:10px;background:rgba(0,200,81,0.1);color:#00C851;padding:2px 6px;border-radius:4px">طعام</span></div>
+        <div class="creator-card-cat">89K متابع • 1.8M إعجاب</div>
+      </div>
+      <div class="creator-card-price">من 120 ريال</div>
+    </div>
+    <div class="creator-card-stats">
+      <div class="ccs"><div class="ccs-val">89K</div><div class="ccs-lbl">متابع</div></div>
+      <div class="ccs"><div class="ccs-val">6.2%</div><div class="ccs-lbl">تفاعل</div></div>
+      <div class="ccs"><div class="ccs-val">1,940</div><div class="ccs-lbl">نقرة/بنر</div></div>
+    </div>
+    <div class="creator-banners">
+      <div class="banner-slot-indicator free" onclick="bookBanner('سارة', 1)">بنر ١ — متاح ✓</div>
+      <div class="banner-slot-indicator free" onclick="bookBanner('سارة', 2)">بنر ٢ — متاح ✓</div>
+      <div class="banner-slot-indicator taken">بنر ٣ — مأخوذ</div>
+    </div>
+    <button class="rent-btn" onclick="bookBanner('سارة', 1)">احجز بنر الآن</button>
+  </div>
+
+  <div class="creator-card" data-cat="sport">
+    <div class="creator-card-top">
+      <div class="creator-card-avatar" style="background:linear-gradient(135deg,#2196F3,#0d47a1)">خ</div>
+      <div class="creator-card-info">
+        <div class="creator-card-name">خالد الرياضة <span style="font-size:10px;background:rgba(33,150,243,0.1);color:#2196F3;padding:2px 6px;border-radius:4px">رياضة</span></div>
+        <div class="creator-card-cat">215K متابع • 4.1M إعجاب</div>
+      </div>
+      <div class="creator-card-price">من 200 ريال</div>
+    </div>
+    <div class="creator-card-stats">
+      <div class="ccs"><div class="ccs-val">215K</div><div class="ccs-lbl">متابع</div></div>
+      <div class="ccs"><div class="ccs-val">5.7%</div><div class="ccs-lbl">تفاعل</div></div>
+      <div class="ccs"><div class="ccs-val">3,210</div><div class="ccs-lbl">نقرة/بنر</div></div>
+    </div>
+    <div class="creator-banners">
+      <div class="banner-slot-indicator taken">بنر ١ — مأخوذ</div>
+      <div class="banner-slot-indicator taken">بنر ٢ — مأخوذ</div>
+      <div class="banner-slot-indicator free" onclick="bookBanner('خالد', 3)">بنر ٣ — متاح ✓</div>
+    </div>
+    <button class="rent-btn" onclick="bookBanner('خالد', 3)">احجز بنر الآن</button>
+  </div>
+
+</div>
+
+<!-- Bottom Nav -->
+<div class="bottombar">
+  <button class="nav-item" onclick="window.location.href='bannr_feed.html'">
+    <div class="nav-icon">🏠</div><div class="nav-label">الرئيسية</div>
+  </button>
+  <button class="nav-item active">
+    <div class="nav-icon">📢</div><div class="nav-label">إعلاناتي</div>
+  </button>
+  <button class="nav-upload">＋</button>
+  <button class="nav-item">
+    <div class="nav-icon">📊</div><div class="nav-label">إحصاءات</div>
+  </button>
+  <button class="nav-item">
+    <div class="nav-icon">👤</div><div class="nav-label">حسابي</div>
+  </button>
+</div>
+
+<script>
+const sb = supabase.createClient(
+  'https://mmodkjefxhajmcukrplk.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tb2RramVmeGhham1jdWtycGxrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczMDYyNTIsImV4cCI6MjA5Mjg4MjI1Mn0.gsED9FljH1wlNxiwD6LM4mxlSibua3uPkr1G3JIm_nU'
+);
+
+function setFilter(btn, cat) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.creator-card').forEach(card => {
+    card.style.display = cat === 'all' || card.dataset.cat === cat ? '' : 'none';
+  });
+}
+
+function filterCreators(q) {
+  q = q.toLowerCase();
+  document.querySelectorAll('.creator-card').forEach(card => {
+    const name = card.querySelector('.creator-card-name').textContent.toLowerCase();
+    card.style.display = name.includes(q) ? '' : 'none';
+  });
+}
+
+function bookBanner(creator, slot) {
+  showToast(`✓ تم إرسال طلب حجز بنر ${slot} لـ ${creator}`);
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+window.addEventListener('load', async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { window.location.href = 'bannr_auth.html'; return; }
+
+  const { data: user } = await sb.from('users').select('*').eq('id', session.user.id).single();
+  if (!user) return;
+
+  // تحديث اسم المعلن
+  const nameEl = document.getElementById('advertiserName');
+  if (nameEl) nameEl.textContent = user.name || 'معلن';
+
+  // جلب حملاتي النشطة
+  await loadMyCampaigns(user.id);
+
+  // جلب المنشئين المتاحين
+  await loadAvailableCreators();
+});
+
+// ── جلب حملاتي ──
+async function loadMyCampaigns(userId) {
+  const { data: rentals } = await sb.from('banner_rentals')
+    .select('*, creator:creator_id(name, handle)')
+    .eq('advertiser_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(5);
+
+  const container = document.getElementById('myCampaigns');
+  if (!container) return;
+
+  if (!rentals || rentals.length === 0) {
+    container.innerHTML = '<div style="text-align:center;color:var(--gray);padding:20px;font-size:13px">لا توجد حملات بعد — ابدأ بحجز بنر! 👇</div>';
+    return;
+  }
+
+  const statusColor = { active: '#10B981', pending: '#C9A84C', expired: '#888', rejected: '#FE2C55' };
+  const statusText  = { active: '🟢 نشط', pending: '⏳ قيد المراجعة', expired: '⛔ منتهي', rejected: '❌ مرفوض' };
+
+  container.innerHTML = rentals.map(r => `
+    <div class="campaign-item" style="background:var(--card);border:1px solid rgba(255,255,255,0.06);
+         border-radius:14px;padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:12px">
+      <div style="width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,#FE2C55,#ff8c42);
+           display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:white;flex-shrink:0">
+        ${r.creator?.name?.[0] || 'م'}
+      </div>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:700">@${r.creator?.handle || 'منشئ'}</div>
+        <div style="font-size:11px;color:var(--gray);margin-top:2px">
+          بنر ${r.banner_slot} — ${r.duration_type === 'daily' ? 'يوم' : r.duration_type === 'weekly' ? 'أسبوع' : 'شهر'}
+          — ${r.price_paid} ريال
+        </div>
+      </div>
+      <div style="font-size:12px;font-weight:700;color:${statusColor[r.status] || '#888'}">
+        ${statusText[r.status] || r.status}
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── جلب المنشئين المتاحين ──
+async function loadAvailableCreators() {
+  const { data: creators } = await sb.from('creator_profiles')
+    .select('*, user:user_id(name, handle, category, bio)')
+    .or('banner1_status.eq.available,banner2_status.eq.available,banner3_status.eq.available')
+    .order('follower_count', { ascending: false })
+    .limit(6);
+
+  const container = document.getElementById('creatorsContainer');
+  if (!container || !creators || creators.length === 0) return;
+
+  const colors = [
+    'linear-gradient(135deg,#FE2C55,#ff8c42)',
+    'linear-gradient(135deg,#2196F3,#0d47a1)',
+    'linear-gradient(135deg,#00C851,#00960d)',
+    'linear-gradient(135deg,#9C27B0,#4A148C)',
+    'linear-gradient(135deg,#FF9800,#E65100)',
+    'linear-gradient(135deg,#00BCD4,#006064)',
+  ];
+
+  container.innerHTML = creators.map((cp, i) => {
+    const availableBanners = [
+      cp.banner1_status === 'available' ? 1 : null,
+      cp.banner2_status === 'available' ? 2 : null,
+      cp.banner3_status === 'available' ? 3 : null,
+    ].filter(Boolean);
+
+    const price = cp.banner1_price || cp.banner2_price || 350;
+    const followers = cp.follower_count > 999 ?
+      (cp.follower_count/1000).toFixed(1)+'K' : cp.follower_count || 0;
+
+    return `
+      <div class="creator-card" data-cat="${cp.user?.category || 'all'}">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <div style="width:48px;height:48px;border-radius:50%;background:${colors[i%6]};
+               display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:white">
+            ${cp.user?.name?.[0] || 'م'}
+          </div>
+          <div style="flex:1">
+            <div class="creator-card-name" style="font-size:14px;font-weight:700">${cp.user?.name || 'منشئ'}</div>
+            <div style="font-size:12px;color:var(--gray)">@${cp.user?.handle || 'handle'} • ${cp.user?.category || 'عام'}</div>
+          </div>
+          <div style="font-size:13px;font-weight:700;color:var(--gold)">${followers}</div>
+        </div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:10px">
+          ${cp.user?.bio || 'منشئ محتوى على Bannr'}
+        </div>
+        <div class="creator-banners">
+          ${[1,2,3].map(slot => {
+            const status = cp['banner'+slot+'_status'];
+            return status === 'available'
+              ? `<div class="banner-slot-indicator free" onclick="bookBanner('${cp.user?.name}', ${slot}, '${cp.user_id}')">بنر ${slot} — متاح ✓</div>`
+              : `<div class="banner-slot-indicator taken">بنر ${slot} — مأخوذ</div>`;
+          }).join('')}
+        </div>
+        <button class="rent-btn" onclick="bookBanner('${cp.user?.name}', ${availableBanners[0] || 1}, '${cp.user_id}')">
+          احجز بنر — من ${price} ريال/أسبوع
+        </button>
+      </div>
+    `;
+  }).join('');
+}
+
+// ── حجز بنر ──
+async function bookBanner(creatorName, slot, creatorId) {
+  showToast(`✓ تم إرسال طلب حجز بنر ${slot} لـ ${creatorName}`);
+}
+</script>
+</body>
+</html>

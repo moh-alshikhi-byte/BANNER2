@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Bannr</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
+
+:root {
+  --red: #FE2C55;
+  --gold: #C9A84C;
+  --black: #0A0A0A;
+  --dark: #111111;
+  --card: #161616;
+  --text: #F5F0E8;
+  --gray: #888;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+body {
+  font-family: 'Cairo', sans-serif;
+  background: var(--black);
+  color: var(--text);
+  height: 100vh;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* ── Top Bar ── */
+.topbar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  z-index: 100;
+  background: linear-gradient(to bottom, rgba(10,10,10,0.95), transparent);
+}
+.topbar-logo {
+  font-size: 26px;
+  font-weight: 900;
+  color: var(--red);
+  letter-spacing: -1px;
+}
+.topbar-logo span { color: var(--gold); }
+.topbar-actions { display: flex; gap: 12px; align-items: center; }
+.topbar-btn {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.08);
+  color: var(--text);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.topbar-avatar {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--red), #ff8c42);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700;
+  cursor: pointer;
+}
+
+/* ── Feed Container ── */
+.feed {
+  height: 100vh;
+  overflow-y: scroll;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none;
+}
+.feed::-webkit-scrollbar { display: none; }
+
+/* ── Video Card ── */
+.video-card {
+  height: 100vh;
+  width: 100%;
+  scroll-snap-align: start;
+  position: relative;
+  overflow: hidden;
+  background: var(--black);
+}
+
+/* فيديو الخلفية */
+.video-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+}
+
+/* طبقة التدرج */
+.video-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(0,0,0,0.3) 0%,
+    transparent 30%,
+    transparent 50%,
+    rgba(0,0,0,0.7) 80%,
+    rgba(0,0,0,0.95) 100%
+  );
+}
+
+/* ── البنر الإعلاني ── */
+.banner-zone {
+  position: absolute;
+  top: 64px;
+  left: 12px; right: 12px;
+  z-index: 10;
+}
+.banner-ad {
+  background: rgba(10,10,10,0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(201,168,76,0.3);
+  border-radius: 12px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.banner-ad:hover { border-color: var(--gold); }
+.banner-ad-icon {
+  width: 36px; height: 36px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--gold), #e8c96b);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.banner-ad-content { flex: 1; min-width: 0; }
+.banner-ad-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.banner-ad-sub {
+  font-size: 11px;
+  color: var(--gold);
+  margin-top: 1px;
+}
+.banner-ad-badge {
+  font-size: 9px;
+  color: var(--gold);
+  border: 1px solid rgba(201,168,76,0.4);
+  border-radius: 4px;
+  padding: 2px 5px;
+  flex-shrink: 0;
+}
+.banner-empty {
+  background: rgba(10,10,10,0.6);
+  backdrop-filter: blur(8px);
+  border: 1px dashed rgba(255,255,255,0.15);
+  border-radius: 12px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  color: rgba(255,255,255,0.3);
+  font-size: 12px;
+}
+
+/* ── معلومات المنشئ ── */
+.creator-info {
+  position: absolute;
+  bottom: 100px;
+  left: 12px;
+  right: 70px;
+  z-index: 10;
+}
+.creator-name {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.creator-verified {
+  width: 16px; height: 16px;
+  background: var(--red);
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+}
+.creator-desc {
+  font-size: 13px;
+  color: rgba(255,255,255,0.8);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.creator-tags {
+  margin-top: 8px;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.creator-tag {
+  font-size: 12px;
+  color: var(--gold);
+  background: rgba(201,168,76,0.12);
+  border-radius: 20px;
+  padding: 2px 10px;
+}
+
+/* ── أزرار التفاعل الجانبية ── */
+.actions {
+  position: absolute;
+  bottom: 100px;
+  right: 12px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+.action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: var(--text);
+}
+.action-icon {
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.1);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  transition: transform 0.2s, background 0.2s;
+}
+.action-btn:active .action-icon {
+  transform: scale(0.9);
+  background: rgba(254,44,85,0.3);
+}
+.action-count {
+  font-size: 11px;
+  color: rgba(255,255,255,0.8);
+  font-weight: 600;
+}
+
+/* صورة المنشئ الجانبية */
+.creator-avatar-side {
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--red), #ff8c42);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 700;
+  border: 2px solid var(--red);
+  cursor: pointer;
+  position: relative;
+}
+.follow-btn-mini {
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 18px; height: 18px;
+  background: var(--red);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1.5px solid var(--black);
+}
+
+/* ── شريط التنقل السفلي ── */
+.bottombar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: 72px;
+  background: rgba(10,10,10,0.95);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  z-index: 100;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+  padding: 8px 16px;
+  border-radius: 12px;
+  transition: background 0.2s;
+  border: none;
+  background: none;
+  color: var(--gray);
+  font-family: 'Cairo', sans-serif;
+}
+.nav-item.active { color: var(--text); }
+.nav-item:active { background: rgba(255,255,255,0.05); }
+.nav-icon { font-size: 22px; line-height: 1; }
+.nav-label { font-size: 10px; font-weight: 600; }
+.nav-item.active .nav-icon { filter: none; }
+
+/* زر الرفع المركزي */
+.nav-upload {
+  width: 52px; height: 52px;
+  border-radius: 16px;
+  background: var(--red);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  cursor: pointer;
+  border: none;
+  color: white;
+  box-shadow: 0 0 20px rgba(254,44,85,0.4);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.nav-upload:active {
+  transform: scale(0.95);
+  box-shadow: 0 0 10px rgba(254,44,85,0.2);
+}
+
+/* ── محاكاة الفيديو (placeholder) ── */
+.video-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 80px;
+}
+
+/* ── شاشة اللودينج ── */
+.loading-screen {
+  position: fixed;
+  inset: 0;
+  background: var(--black);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  gap: 16px;
+  transition: opacity 0.5s;
+}
+.loading-logo {
+  font-size: 52px;
+  font-weight: 900;
+  color: var(--red);
+  letter-spacing: -2px;
+}
+.loading-spinner {
+  width: 32px; height: 32px;
+  border: 3px solid rgba(255,255,255,0.1);
+  border-top-color: var(--red);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Coin Toast ── */
+.coin-toast {
+  position: fixed;
+  top: 70px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-20px);
+  background: rgba(201,168,76,0.15);
+  border: 1px solid var(--gold);
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gold);
+  z-index: 200;
+  opacity: 0;
+  transition: all 0.3s;
+  white-space: nowrap;
+}
+.coin-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ── CoinStation Overlay ── */
+.coinstation-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.95);
+  z-index: 300;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 24px;
+}
+.coinstation-overlay.show { display: flex; }
+.cs-title {
+  font-size: 28px;
+  font-weight: 900;
+  color: var(--gold);
+  text-align: center;
+}
+.cs-ad-box {
+  width: 100%;
+  max-width: 360px;
+  background: var(--card);
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(201,168,76,0.2);
+}
+.cs-ad-visual {
+  height: 200px;
+  background: linear-gradient(135deg, #1a1a2e, #16213e);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 80px;
+}
+.cs-ad-info {
+  padding: 16px;
+}
+.cs-ad-name { font-size: 16px; font-weight: 700; }
+.cs-ad-desc { font-size: 13px; color: var(--gray); margin-top: 4px; }
+.cs-progress {
+  width: 100%;
+  max-width: 360px;
+}
+.cs-progress-bar {
+  height: 6px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.cs-progress-fill {
+  height: 100%;
+  background: var(--gold);
+  border-radius: 3px;
+  width: 0%;
+  transition: width 0.1s linear;
+}
+.cs-timer {
+  font-size: 14px;
+  color: var(--gray);
+  text-align: center;
+  margin-top: 8px;
+}
+.cs-confirm-btn {
+  width: 100%;
+  max-width: 360px;
+  padding: 16px;
+  background: var(--gold);
+  border: none;
+  border-radius: 14px;
+  color: var(--black);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: 'Cairo', sans-serif;
+  transition: opacity 0.2s;
+}
+.cs-confirm-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.cs-close {
+  color: var(--gray);
+  font-size: 14px;
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-family: 'Cairo', sans-serif;
+}
+.cs-reward {
+  font-size: 40px;
+  font-weight: 900;
+  color: var(--gold);
+  text-align: center;
+}
+</style>
+</head>
+<body>
+
+<!-- Loading -->
+<div class="loading-screen" id="loadingScreen">
+  <div class="loading-logo">Bannr</div>
+  <div class="loading-spinner"></div>
+</div>
+
+<!-- Coin Toast -->
+<div class="coin-toast" id="coinToast">🪙 +5 كوينز!</div>
+
+<!-- Top Bar -->
+<div class="topbar">
+  <div class="topbar-logo">Bannr<span>.</span></div>
+  <div class="topbar-actions">
+    <button class="topbar-btn" onclick="openCoinStation()">🪙</button>
+    <button class="topbar-btn">🔔</button>
+    <div class="topbar-avatar" id="userAvatar" onclick="goToProfile()">م</div>
+  </div>
+</div>
+
+<!-- Feed -->
+<div class="feed" id="feed">
+
+  <!-- فيديو ١ -->
+  <div class="video-card">
+    <div class="video-placeholder" style="background: linear-gradient(135deg, #0a0a1a, #1a0a2e)">🎬</div>
+    <div class="video-overlay"></div>
+
+    <!-- بنر إعلاني -->
+    <div class="banner-zone">
+      <div class="banner-ad" onclick="showCoinToast('نقرت على إعلان سامسونج')">
+        <div class="banner-ad-icon">📱</div>
+        <div class="banner-ad-content">
+          <div class="banner-ad-title">سامسونج Galaxy S25 Ultra</div>
+          <div class="banner-ad-sub">اكتشف تجربة جديدة</div>
+        </div>
+        <div class="banner-ad-badge">إعلان</div>
+      </div>
+    </div>
+
+    <!-- أزرار التفاعل -->
+    <div class="actions">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+        <div class="creator-avatar-side" onclick="goToCreator('محمد')">م
+          <div class="follow-btn-mini">+</div>
+        </div>
+      </div>
+      <button class="action-btn" onclick="toggleLike(this)">
+        <div class="action-icon">🤍</div>
+        <span class="action-count">24.5K</span>
+      </button>
+      <button class="action-btn">
+        <div class="action-icon">💬</div>
+        <span class="action-count">1.2K</span>
+      </button>
+      <button class="action-btn">
+        <div class="action-icon">↗️</div>
+        <span class="action-count">مشاركة</span>
+      </button>
+      <button class="action-btn" onclick="sendRose()">
+        <div class="action-icon">🌹</div>
+        <span class="action-count">ورود</span>
+      </button>
+    </div>
+
+    <!-- معلومات المنشئ -->
+    <div class="creator-info">
+      <div class="creator-name">
+        @محمد_الشيخي
+        <span class="creator-verified">✓</span>
+      </div>
+      <div class="creator-desc">أحدث تقنيات الذكاء الاصطناعي وكيف تغير حياتنا اليومية 🤖</div>
+      <div class="creator-tags">
+        <span class="creator-tag">#تقنية</span>
+        <span class="creator-tag">#ذكاء_اصطناعي</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- فيديو ٢ -->
+  <div class="video-card">
+    <div class="video-placeholder" style="background: linear-gradient(135deg, #0d1b0d, #1a2e1a)">🍳</div>
+    <div class="video-overlay"></div>
+
+    <div class="banner-zone">
+      <div class="banner-empty" onclick="rentBanner()">
+        <span>◻</span>
+        <span>بنر متاح للإيجار — اضغط للحجز</span>
+      </div>
+    </div>
+
+    <div class="actions">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+        <div class="creator-avatar-side" style="background: linear-gradient(135deg, #00C851, #00960d)" onclick="goToCreator('سارة')">س
+          <div class="follow-btn-mini">+</div>
+        </div>
+      </div>
+      <button class="action-btn" onclick="toggleLike(this)">
+        <div class="action-icon">🤍</div>
+        <span class="action-count">89.1K</span>
+      </button>
+      <button class="action-btn">
+        <div class="action-icon">💬</div>
+        <span class="action-count">4.3K</span>
+      </button>
+      <button class="action-btn">
+        <div class="action-icon">↗️</div>
+        <span class="action-count">مشاركة</span>
+      </button>
+      <button class="action-btn" onclick="sendRose()">
+        <div class="action-icon">🌹</div>
+        <span class="action-count">ورود</span>
+      </button>
+    </div>
+
+    <div class="creator-info">
+      <div class="creator-name">
+        @سارة_المطبخ
+        <span class="creator-verified">✓</span>
+      </div>
+      <div class="creator-desc">وصفة الكنافة بالجبن الأصلية من جدتي — جربوها وأخبروني! 🍯</div>
+      <div class="creator-tags">
+        <span class="creator-tag">#طبخ</span>
+        <span class="creator-tag">#حلويات</span>
+        <span class="creator-tag">#وصفات</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- فيديو ٣ -->
+  <div class="video-card">
+    <div class="video-placeholder" style="background: linear-gradient(135deg, #1a0a0a, #2e1a0a)">⚽</div>
+    <div class="video-overlay"></div>
+
+    <div class="banner-zone">
+      <div class="banner-ad" onclick="showCoinToast('نقرت على إعلان نايك')">
+        <div class="banner-ad-icon">👟</div>
+        <div class="banner-ad-content">
+          <div class="banner-ad-title">Nike Air Max 2025</div>
+          <div class="banner-ad-sub">Just Do It — خصم 30%</div>
+        </div>
+        <div class="banner-ad-badge">إعلان</div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+        <div class="creator-avatar-side" style="background: linear-gradient(135deg, #2196F3, #0d47a1)" onclick="goToCreator('خالد')">خ
+          <div class="follow-btn-mini">+</div>
+        </div>
+      </div>
+      <button class="action-btn" onclick="toggleLike(this)">
+        <div class="action-icon">🤍</div>
+        <span class="action-count">156K</span>
+      </button>
+      <button class="action-btn">
+        <div class="action-icon">💬</div>
+        <span class="action-count">8.7K</span>
+      </button>
+      <button class="action-btn">
+        <div class="action-icon">↗️</div>
+        <span class="action-count">مشاركة</span>
+      </button>
+      <button class="action-btn" onclick="sendRose()">
+        <div class="action-icon">🌹</div>
+        <span class="action-count">ورود</span>
+      </button>
+    </div>
+
+    <div class="creator-info">
+      <div class="creator-name">@خالد_الرياضة</div>
+      <div class="creator-desc">تحليل مباراة الديربي — من الفائز الحقيقي؟ 🔥</div>
+      <div class="creator-tags">
+        <span class="creator-tag">#رياضة</span>
+        <span class="creator-tag">#كرة_قدم</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Bottom Bar -->
+<div class="bottombar">
+  <button class="nav-item active">
+    <div class="nav-icon">🏠</div>
+    <div class="nav-label">الرئيسية</div>
+  </button>
+  <button class="nav-item" onclick="goToExplore()">
+    <div class="nav-icon">🔍</div>
+    <div class="nav-label">استكشاف</div>
+  </button>
+  <button class="nav-upload">＋</button>
+  <button class="nav-item" onclick="openCoinStation()">
+    <div class="nav-icon">🪙</div>
+    <div class="nav-label">كوينز</div>
+  </button>
+  <button class="nav-item" onclick="goToProfile()">
+    <div class="nav-icon">👤</div>
+    <div class="nav-label">حسابي</div>
+  </button>
+</div>
+
+<!-- CoinStation Overlay -->
+<div class="coinstation-overlay" id="coinStation">
+  <div class="cs-title">🪙 CoinStation</div>
+  <div class="cs-ad-box">
+    <div class="cs-ad-visual">🛍️</div>
+    <div class="cs-ad-info">
+      <div class="cs-ad-name">نون — تسوق بذكاء</div>
+      <div class="cs-ad-desc">أفضل العروض والخصومات يومياً</div>
+    </div>
+  </div>
+  <div class="cs-progress">
+    <div class="cs-progress-bar">
+      <div class="cs-progress-fill" id="csProgress"></div>
+    </div>
+    <div class="cs-timer" id="csTimer">شاهد الإعلان كاملاً لتكسب الكوينز</div>
+  </div>
+  <button class="cs-confirm-btn" id="csBtn" disabled onclick="earnCoins()">
+    اضغط للتأكيد كل 5 ثوانٍ
+  </button>
+  <button class="cs-close" onclick="closeCoinStation()">إغلاق</button>
+</div>
+
+<script>
+// ── Supabase ──
+const { createClient } = supabase;
+const sb = createClient(
+  'https://mmodkjefxhajmcukrplk.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tb2RramVmeGhham1jdWtycGxrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczMDYyNTIsImV4cCI6MjA5Mjg4MjI1Mn0.gsED9FljH1wlNxiwD6LM4mxlSibua3uPkr1G3JIm_nU'
+);
+
+let currentUser = null;
+let csInterval = null;
+let csSeconds = 0;
+let csConfirms = 0;
+
+// ── تحميل المستخدم والمحتوى ──
+window.addEventListener('load', async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { window.location.href = 'bannr_auth.html'; return; }
+
+  const { data: profile } = await sb.from('users').select('*').eq('id', session.user.id).single();
+  if (profile) {
+    currentUser = profile;
+    document.getElementById('userAvatar').textContent = profile.name?.[0] || 'م';
+  }
+
+  // جلب المحتوى الحقيقي من قاعدة البيانات
+  await loadFeedContent();
+
+  document.getElementById('loadingScreen').style.opacity = '0';
+  setTimeout(() => document.getElementById('loadingScreen').style.display = 'none', 500);
+});
+
+// ── تحميل الفيد الحقيقي ──
+async function loadFeedContent() {
+  const { data: videos } = await sb.from('content')
+    .select('*, creator:creator_id(name, handle, avatar_url)')
+    .eq('status', 'published')
+    .order('views_count', { ascending: false })
+    .limit(10);
+
+  if (!videos || videos.length === 0) return;
+
+  const feed = document.getElementById('feedContainer');
+  if (!feed) return;
+
+  const emojis = ['🤖','🍳','⚽','🎵','✈️','👗','💡','🎮','🌿','📚'];
+  const colors = [
+    'linear-gradient(135deg,#0d0d1a,#1a1a2e)',
+    'linear-gradient(135deg,#0d1a0d,#1a2e1a)',
+    'linear-gradient(135deg,#1a0d0d,#2e1a1a)',
+    'linear-gradient(135deg,#1a1a0d,#2e2e1a)',
+  ];
+
+  // أضف كارد لكل فيديو حقيقي في الفيد
+  videos.forEach((video, i) => {
+    const creatorName = video.creator?.name || 'منشئ';
+    const handle = video.creator?.handle || 'handle';
+    const initial = creatorName[0] || 'م';
+    const views = video.views_count > 999 ? (video.views_count/1000).toFixed(1)+'K' : video.views_count || 0;
+
+    const card = document.createElement('div');
+    card.className = 'video-card';
+    card.innerHTML = `
+      <div class="video-placeholder" style="background:${colors[i%4]}">${emojis[i%10]}</div>
+      <div class="video-overlay"></div>
+      <div class="actions">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+          <div class="creator-avatar-side" style="background:linear-gradient(135deg,#FE2C55,#ff8c42)">
+            ${initial}
+            <div class="follow-btn-mini">+</div>
+          </div>
+        </div>
+        <button class="action-btn" onclick="toggleLike(this)">
+          <div class="action-icon">🤍</div>
+          <span class="action-count">${video.likes_count || 0}</span>
+        </button>
+        <button class="action-btn">
+          <div class="action-icon">💬</div>
+          <span class="action-count">${video.comments_count || 0}</span>
+        </button>
+        <button class="action-btn">
+          <div class="action-icon">↗️</div>
+          <span class="action-count">مشاركة</span>
+        </button>
+        <button class="action-btn" onclick="sendRose()">
+          <div class="action-icon">🌹</div>
+          <span class="action-count">ورود</span>
+        </button>
+      </div>
+      <div class="creator-info">
+        <div class="creator-name">@${handle}</div>
+        <div class="creator-desc">${video.description || video.title || 'محتوى رائع'}</div>
+        <div class="creator-tags">
+          ${(video.tags || []).slice(0,3).map(t => `<span class="creator-tag">#${t}</span>`).join('')}
+        </div>
+      </div>
+    `;
+    feed.appendChild(card);
+  });
+}
+
+// ── تبديل الإعجاب ──
+function toggleLike(btn) {
+  const icon = btn.querySelector('.action-icon');
+  const count = btn.querySelector('.action-count');
+  if (icon.textContent === '🤍') {
+    icon.textContent = '❤️';
+    icon.style.transform = 'scale(1.3)';
+    setTimeout(() => icon.style.transform = '', 300);
+  } else {
+    icon.textContent = '🤍';
+  }
+}
+
+// ── إرسال وردة ──
+function sendRose() {
+  showCoinToast('🌹 أرسلت وردة!');
+}
+
+// ── Toast ──
+function showCoinToast(msg) {
+  const toast = document.getElementById('coinToast');
+  toast.textContent = msg || '🪙 +5 كوينز!';
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2500);
+}
+
+// ── CoinStation ──
+let csTotal = 30;
+let csNextConfirm = 5;
+
+function openCoinStation() {
+  document.getElementById('coinStation').classList.add('show');
+  startCsTimer();
+}
+
+function closeCoinStation() {
+  document.getElementById('coinStation').classList.remove('show');
+  clearInterval(csInterval);
+  csSeconds = 0;
+  csConfirms = 0;
+  document.getElementById('csProgress').style.width = '0%';
+  document.getElementById('csBtn').disabled = true;
+  document.getElementById('csBtn').textContent = 'اضغط للتأكيد كل 5 ثوانٍ';
+  document.getElementById('csTimer').textContent = 'شاهد الإعلان كاملاً لتكسب الكوينز';
+}
+
+function startCsTimer() {
+  csSeconds = 0;
+  csInterval = setInterval(() => {
+    csSeconds++;
+    const pct = (csSeconds / csTotal) * 100;
+    document.getElementById('csProgress').style.width = pct + '%';
+
+    const remaining = csTotal - csSeconds;
+    document.getElementById('csTimer').textContent = `${remaining} ثانية متبقية`;
+
+    if (csSeconds % 5 === 0 && csSeconds <= csTotal) {
+      document.getElementById('csBtn').disabled = false;
+      document.getElementById('csBtn').textContent = '✓ اضغط الآن للتأكيد!';
+    }
+
+    if (csSeconds >= csTotal) {
+      clearInterval(csInterval);
+      document.getElementById('csBtn').disabled = false;
+      document.getElementById('csBtn').textContent = '🪙 احصل على 10 كوينز!';
+      document.getElementById('csTimer').textContent = 'انتهى الإعلان — احصل على مكافأتك!';
+    }
+  }, 1000);
+}
+
+async function earnCoins() {
+  clearInterval(csInterval);
+  const btn = document.getElementById('csBtn');
+  btn.disabled = true;
+  btn.textContent = '✓ تم الاكتساب!';
+
+  if (currentUser) {
+    const newBalance = (currentUser.coins_balance || 0) + 10;
+    await sb.from('users').update({ coins_balance: newBalance }).eq('id', currentUser.id);
+    await sb.from('coins_transactions').insert({
+      user_id: currentUser.id,
+      amount: 10,
+      type: 'earned',
+      source: 'coinstation_ad',
+      description: 'مشاهدة إعلان CoinStation'
+    });
+    currentUser.coins_balance = newBalance;
+  }
+
+  setTimeout(() => {
+    closeCoinStation();
+    showCoinToast('🪙 +10 كوينز اكتسبت!');
+  }, 800);
+}
+
+// ── التنقل ──
+function goToProfile() {
+  window.location.href = 'bannr_creator.html';
+}
+function goToCreator(name) {
+  window.location.href = 'bannr_creator.html';
+}
+function goToExplore() {
+  window.location.href = 'bannr_explore.html';
+}
+function rentBanner() {
+  window.location.href = 'bannr_advertiser.html';
+}
+function goToDashboard() {
+  window.location.href = 'bannr_dashboard.html';
+}
+function goToLive() {
+  window.location.href = 'bannr_live.html';
+}
+function goToBattles() {
+  window.location.href = 'bannr_battles.html';
+}
+</script>
+</body>
+</html>

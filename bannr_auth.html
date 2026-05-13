@@ -557,8 +557,21 @@ async function loadDashboard(authUser) {
     { icon: '💰', label: 'كوينزي' },
   ];
 
+  const navLinks = {
+    'لوحة المنشئ': 'bannr_dashboard.html',
+    'بنراتي': 'bannr_creator.html',
+    'محتواي': 'bannr_feed.html',
+    'CoinStation': 'bannr_coinstation.html',
+    'حملاتي': 'bannr_advertiser.html',
+    'المنشئون': 'bannr_explore.html',
+    'احجز بنر': 'bannr_advertiser.html',
+    'الرئيسية': 'bannr_feed.html',
+    'أرسل وردة': 'bannr_live.html',
+    'كوينزي': 'bannr_coinstation.html',
+  };
+
   navGrid.innerHTML = navItems.map(n => `
-    <div class="nav-btn">
+    <div class="nav-btn" onclick="window.location.href='${navLinks[n.label] || '#'}'">
       <span class="nav-btn-icon">${n.icon}</span>
       <span class="nav-btn-lbl">${n.label}</span>
     </div>
